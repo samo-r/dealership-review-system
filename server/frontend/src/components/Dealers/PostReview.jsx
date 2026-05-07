@@ -3,8 +3,10 @@ import { useParams } from "react-router-dom";
 import "./Dealers.css";
 import "../assets/style.css";
 import Header from "../Header/Header";
+import { useAuth } from "../../context/AuthContext";
 
 const PostReview = () => {
+  const { user, token, authHeaders, logout } = useAuth();
   const [dealer, setDealer] = useState({});
   const [review, setReview] = useState("");
   const [model, setModel] = useState();
@@ -21,14 +23,12 @@ const PostReview = () => {
   let carmodels_url = root_url + `djangoapp/get_cars`;
 
   const postreview = async () => {
-    let name =
-      sessionStorage.getItem("firstname") +
-      " " +
-      sessionStorage.getItem("lastname");
-    //If the first and second name are stores as null, use the username
-    if (name.includes("null")) {
-      name = sessionStorage.getItem("username");
+    if (!token) {
+      window.location.href = "/login";
+      return;
     }
+
+    const name = user?.userName || "Anonymous";
     if (!model || review === "" || date === "" || year === "" || model === "") {
       alert("All details are mandatory");
       return;
@@ -49,19 +49,26 @@ const PostReview = () => {
       car_year: year,
     });
 
-    console.log(jsoninput);
     const res = await fetch(review_url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...authHeaders(),
       },
-      credentials: "include",
       body: jsoninput,
     });
 
+    if (res.status === 401) {
+      logout();
+      window.location.href = "/login";
+      return;
+    }
+
     const json = await res.json();
-    if (json.status === 200) {
+    if (res.ok) {
       window.location.href = window.location.origin + "/dealer/" + id;
+    } else {
+      alert(json.error?.message || "Could not post review.");
     }
   };
   const get_dealer = async () => {

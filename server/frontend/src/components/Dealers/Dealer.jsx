@@ -7,8 +7,10 @@ import neutral_icon from "../assets/neutral.png";
 import negative_icon from "../assets/negative.png";
 import review_icon from "../assets/reviewbutton.png";
 import Header from "../Header/Header";
+import { useAuth } from "../../context/AuthContext";
 
 const Dealer = () => {
+  const { user, role } = useAuth();
   const [dealer, setDealer] = useState({});
   const [reviews, setReviews] = useState([]);
   const [unreviewed, setUnreviewed] = useState(false);
@@ -62,7 +64,7 @@ const Dealer = () => {
   useEffect(() => {
     get_dealer();
     get_reviews();
-    if (sessionStorage.getItem("username")) {
+    if (user && role !== "DEALER_ADMIN") {
       setPostReview(
         <a href={post_review}>
           <img

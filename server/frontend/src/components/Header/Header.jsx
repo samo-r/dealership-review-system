@@ -1,39 +1,46 @@
 import React from "react";
 import "../assets/style.css";
 import "../assets/bootstrap.min.css";
+import { useAuth } from "../../context/AuthContext";
 
 const Header = () => {
-  const logout = async (e) => {
-    e.preventDefault();
-    let logout_url = window.location.origin + "/djangoapp/logout";
-    const res = await fetch(logout_url, {
-      method: "GET",
-    });
+  const { user, role, logout } = useAuth();
 
-    const json = await res.json();
-    if (json) {
-      let username = sessionStorage.getItem("username");
-      sessionStorage.removeItem("username");
-      window.location.href = window.location.origin;
-      window.location.reload();
-      alert("Logging out " + username + "...");
-    } else {
-      alert("The user could not be logged out.");
-    }
+  const handleLogout = (e) => {
+    e.preventDefault();
+    const username = user?.userName;
+    logout();
+    alert("Logging out " + username + "...");
+    window.location.href = window.location.origin;
   };
 
   //The default home page items are the login details panel
   let home_page_items = <div></div>;
 
   //Gets the username in the current session
-  let curr_user = sessionStorage.getItem("username");
+  const curr_user = user?.userName || null;
 
-  //If the user is logged in, show the username and logout option on home page
+  //If the user is logged in, show the username, role badge, and logout option
   if (curr_user !== null && curr_user !== "") {
     home_page_items = (
       <div className="input_panel">
-        <text className="username">{sessionStorage.getItem("username")}</text>
-        <a className="nav_item" href="/djangoapp/logout" onClick={logout}>
+        <text className="username">{curr_user}</text>
+        {role ? (
+          <span
+            style={{
+              marginLeft: "8px",
+              fontSize: "0.75em",
+              background: "#00838f",
+              color: "white",
+              padding: "2px 7px",
+              borderRadius: "4px",
+              verticalAlign: "middle",
+            }}
+          >
+            {role}
+          </span>
+        ) : null}
+        <a className="nav_item" href="/" onClick={handleLogout}>
           Logout
         </a>
       </div>

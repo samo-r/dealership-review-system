@@ -8,7 +8,7 @@ import json
 import jwt
 from django.views.decorators.csrf import csrf_exempt
 from .models import CarMake, CarModel
-from .restapis import get_request, analyze_review_sentiments, post_review, put_request, delete_request
+from .restapis import get_request, analyze_review_sentiments, post_review, post_request, put_request, delete_request
 from .populate import initiate
 
 User = get_user_model()
@@ -128,11 +128,19 @@ ROLE_CAPABILITIES = {
         "review.create",
         "review.update.any",
         "review.delete.any",
+        "inventory.read.any",
+        "inventory.create",
+        "inventory.update.any",
+        "inventory.delete.any",
     },
     "DEALER_ADMIN": {
         "dealership.read",
         "dealership.update.own",
         "review.read",
+        "inventory.read.own",
+        "inventory.create",
+        "inventory.update.own",
+        "inventory.delete.own",
     },
     "CUSTOMER": {
         "dealership.read",
@@ -568,6 +576,122 @@ def update_review(request, review_id):
     if is_upstream_error(response):
         return upstream_error_response(response)
     return JsonResponse({"status": 200, "review": response})
+
+
+# Inventory endpoints 
+# Get inventory for a specific dealership
+def get_dealer_inventory(request, dealer_id):
+    user, error_response = get_authenticated_user_from_token(request)
+    if error_response is not None:
+        return error_response
+
+    can_read_any = has_capability(user, "inventory.read.any")
+    can_read_own = has_capability(user, "inventory.read.own")
+
+    if not can_read_any and not can_read_own:
+        return api_error(403, "FORBIDDEN", "Insufficient role to read inventory")
+
+    # DEALER_ADMIN may only read inventory for their own assigned dealership
+    if can_read_own and not can_read_any:
+        if user.assigned_dealer_id != dealer_id:
+            return api_error(403, "FORBIDDEN", "You may only view inventory for your assigned dealership")
+
+    vehicles = get_request("/fetchInventory/dealer/" + str(dealer_id))
+    if is_upstream_error(vehicles):
+        return upstream_error_response(vehicles)
+    return JsonResponse({"status": 200, "vehicles": vehicles})
+
+
+# Add a vehicle to inventory
+@csrf_exempt
+def add_inventory(request):
+    if request.method != "POST":
+        return api_error(405, "METHOD_NOT_ALLOWED", "Method Not Allowed")
+
+    user, error_response = require_capability(request, "inventory.create")
+    if error_response is not None:
+        return error_response
+
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return api_error(400, "INVALID_JSON", "Invalid JSON body")
+
+    # DEALER_ADMIN can only add vehicles to their own dealership
+    if not has_capability(user, "inventory.update.any"):
+        data["dealer_id"] = user.assigned_dealer_id
+
+    response = post_request("/addInventory", data)
+    if is_upstream_error(response):
+        return upstream_error_response(response)
+    return JsonResponse({"status": 201, "vehicle": response}, status=201)
+
+
+# Update an inventory vehicle by its MongoDB _id
+@csrf_exempt
+def update_inventory(request, vehicle_id):
+    if request.method != "PUT":
+        return api_error(405, "METHOD_NOT_ALLOWED", "Method Not Allowed")
+
+    user, error_response = get_authenticated_user_from_token(request)
+    if error_response is not None:
+        return error_response
+
+    can_update_any = has_capability(user, "inventory.update.any")
+    can_update_own = has_capability(user, "inventory.update.own")
+
+    if not can_update_any and not can_update_own:
+        return api_error(403, "FORBIDDEN", "Insufficient role to update inventory")
+
+    # DEALER_ADMIN: verify the vehicle belongs to their assigned dealership
+    if can_update_own and not can_update_any:
+        existing = get_request("/fetchInventory/dealer/" + str(user.assigned_dealer_id))
+        if is_upstream_error(existing):
+            return upstream_error_response(existing)
+        vehicle_ids = [str(v.get("_id")) for v in (existing or [])]
+        if vehicle_id not in vehicle_ids:
+            return api_error(403, "FORBIDDEN", "You may only update inventory for your assigned dealership")
+
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return api_error(400, "INVALID_JSON", "Invalid JSON body")
+
+    response = put_request("/updateInventory/" + vehicle_id, data)
+    if is_upstream_error(response):
+        return upstream_error_response(response)
+    return JsonResponse({"status": 200, "vehicle": response})
+
+
+# Delete an inventory vehicle by its MongoDB _id
+@csrf_exempt
+def delete_inventory(request, vehicle_id):
+    if request.method != "DELETE":
+        return api_error(405, "METHOD_NOT_ALLOWED", "Method Not Allowed")
+
+    user, error_response = get_authenticated_user_from_token(request)
+    if error_response is not None:
+        return error_response
+
+    can_delete_any = has_capability(user, "inventory.delete.any")
+    can_delete_own = has_capability(user, "inventory.delete.own")
+
+    if not can_delete_any and not can_delete_own:
+        return api_error(403, "FORBIDDEN", "Insufficient role to delete inventory")
+
+    # DEALER_ADMIN: verify the vehicle belongs to their assigned dealership
+    if can_delete_own and not can_delete_any:
+        existing = get_request("/fetchInventory/dealer/" + str(user.assigned_dealer_id))
+        if is_upstream_error(existing):
+            return upstream_error_response(existing)
+        vehicle_ids = [str(v.get("_id")) for v in (existing or [])]
+        if vehicle_id not in vehicle_ids:
+            return api_error(403, "FORBIDDEN", "You may only delete inventory for your assigned dealership")
+
+    response = delete_request("/deleteInventory/" + vehicle_id)
+    if is_upstream_error(response):
+        return upstream_error_response(response)
+    return JsonResponse({"status": 200, "message": "Vehicle deleted"})
 
 
 # Delete a review

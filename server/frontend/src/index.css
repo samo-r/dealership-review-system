@@ -1,0 +1,5 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Existing component CSS is imported per-component; nothing here overrides it. */

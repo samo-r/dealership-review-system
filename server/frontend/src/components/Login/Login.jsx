@@ -1,15 +1,17 @@
 import React, { useState } from "react";
 import "./Login.css";
 import Header from "../Header/Header";
+import { useAuth } from "../../context/AuthContext";
 
 const Login = ({ onClose }) => {
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
+  const { login } = useAuth();
 
   // Fix: Added the trailing slash for Django compatibility
   let login_url = window.location.origin + "/djangoapp/login/";
 
-  const login = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
 
     const res = await fetch(login_url, {
@@ -24,11 +26,14 @@ const Login = ({ onClose }) => {
     });
 
     const json = await res.json();
-    if (json.status != null && json.status === "Authenticated") {
-      sessionStorage.setItem("username", json.userName);
-      window.location.href = "/"; // Success redirect
+    const tokens = json.tokens;
+    if (res.ok && tokens?.access) {
+      login({ access: tokens.access, refresh: tokens.refresh, user: json.user });
+      window.location.href = "/"; // RoleRedirect handles the landing page
     } else {
-      alert("The user could not be authenticated.");
+      const msg =
+        json.error?.message || "The user could not be authenticated.";
+      alert(msg);
     }
   };
 
@@ -42,7 +47,7 @@ const Login = ({ onClose }) => {
           }}
           className="modalContainer"
         >
-          <form className="login_panel" onSubmit={login}>
+          <form className="login_panel" onSubmit={handleLogin}>
             {/* Added margin-bottom style for spacing between fields */}
             <div style={{ marginBottom: "15px" }}>
               <span className="input_field">Username </span>

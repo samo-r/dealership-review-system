@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "./Register.css";
+import { useAuth } from "../../context/AuthContext";
 import user_icon from "../assets/person.png";
 import email_icon from "../assets/email.png";
 import password_icon from "../assets/password.png";
@@ -12,6 +13,8 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setlastName] = useState("");
+
+  const { login } = useAuth();
 
   // Redirect to home
   const gohome = () => {
@@ -40,13 +43,13 @@ const Register = () => {
     });
 
     const json = await res.json();
-    if (json.status) {
-      // Save username in session and reload home
-      sessionStorage.setItem("username", json.userName);
+    const tokens = json.tokens;
+    if (res.ok && tokens?.access) {
+      login({ access: tokens.access, refresh: tokens.refresh, user: json.user });
       window.location.href = window.location.origin;
-    } else if (json.error === "Already Registered") {
-      alert("The user with same username is already registered");
-      window.location.href = window.location.origin;
+    } else {
+      const msg = json.error?.message || "Registration failed.";
+      alert(msg);
     }
   };
 

@@ -208,3 +208,35 @@ def delete_request(endpoint):
             status=502,
             details=str(err),
         )
+
+
+# Generic POST helper (used for inventory and other non-review POST endpoints)
+def post_request(endpoint, data_dict):
+    request_url = backend_url + endpoint
+    print("POST to {} with body {}".format(request_url, data_dict))
+    try:
+        response = requests.post(request_url, json=data_dict, timeout=REQUEST_TIMEOUT)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.HTTPError as err:
+        status = err.response.status_code if err.response is not None else 502
+        return service_error(
+            "database-api",
+            "Backend API returned an error response.",
+            status=status,
+            details=extract_response_details(err.response),
+        )
+    except requests.exceptions.Timeout as err:
+        return service_error(
+            "database-api",
+            "Request to backend API timed out.",
+            status=504,
+            details=str(err),
+        )
+    except requests.exceptions.RequestException as err:
+        return service_error(
+            "database-api",
+            "Request to backend API failed.",
+            status=502,
+            details=str(err),
+        )

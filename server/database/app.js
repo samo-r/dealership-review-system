@@ -55,8 +55,8 @@ const dealerships_data = JSON.parse(
 );
 
 const Reviews = require("./review");
-
 const Dealerships = require("./dealership");
+const Inventory = require("./inventory");
 
 // Atomic ID generation for review inserts.
 const CounterSchema = new mongoose.Schema(
@@ -559,6 +559,167 @@ app.delete("/deleteReview/:id", async (req, res) => {
     return sendError(res, 500, "DELETE_REVIEW_FAILED", "Failed to delete review.");
   }
 });
+
+// Inventory routes 
+// Validate incoming inventory payloads for POST / PUT operations.
+const validateInventoryPayload = (data, requireAll = true) => {
+  if (!data || typeof data !== "object") {
+    return { valid: false, message: "Request body must be a JSON object." };
+  }
+
+  const errors = [];
+
+  if (requireAll || data.dealer_id !== undefined) {
+    const dealerId = Number(data.dealer_id);
+    if (!Number.isInteger(dealerId) || dealerId <= 0) {
+      errors.push("Field 'dealer_id' must be a valid id.");
+    }
+  }
+
+  if (requireAll || data.make !== undefined) {
+    if (typeof data.make !== "string" || data.make.trim() === "") {
+      errors.push("Field 'make' is required and must be a non-empty string.");
+    }
+  }
+
+  if (requireAll || data.model !== undefined) {
+    if (typeof data.model !== "string" || data.model.trim() === "") {
+      errors.push("Field 'model' is required and must be a non-empty string.");
+    }
+  }
+
+  if (requireAll || data.bodyType !== undefined) {
+    if (typeof data.bodyType !== "string" || data.bodyType.trim() === "") {
+      errors.push("Field 'bodyType' is required and must be a non-empty string.");
+    }
+  }
+
+  if (requireAll || data.year !== undefined) {
+    const year = Number(data.year);
+    if (!Number.isInteger(year) || year < 1886) {
+      errors.push("Field 'year' must be an integer >= 1886.");
+    }
+  }
+
+  if (requireAll || data.mileage !== undefined) {
+    const mileage = Number(data.mileage);
+    if (!Number.isFinite(mileage) || mileage < 0) {
+      errors.push("Field 'mileage' must be a non-negative number.");
+    }
+  }
+
+  if (errors.length > 0) {
+    return { valid: false, message: errors[0] };
+  }
+
+  return { valid: true };
+};
+
+// GET /fetchInventory/dealer/:id  — all vehicles for a specific dealership
+app.get("/fetchInventory/dealer/:id", async (req, res) => {
+  const dealerId = Number(req.params.id);
+  if (!Number.isInteger(dealerId) || dealerId <= 0) {
+    return sendError(res, 400, "INVALID_DEALER_ID", "Dealer id must be a positive integer.");
+  }
+
+  try {
+    const vehicles = await Inventory.find({ dealer_id: dealerId });
+    return res.json(vehicles);
+  } catch (error) {
+    return sendError(res, 500, "FETCH_INVENTORY_FAILED", "Failed to fetch inventory.");
+  }
+});
+
+// POST /addInventory  — add a new vehicle to a dealership's inventory
+app.post("/addInventory", async (req, res) => {
+  const validation = validateInventoryPayload(req.body, true);
+  if (!validation.valid) {
+    return sendError(res, 400, "INVALID_INVENTORY_PAYLOAD", validation.message);
+  }
+
+  const dealerExists = await Dealerships.exists({ id: Number(req.body.dealer_id) });
+  if (!dealerExists) {
+    return sendError(res, 404, "DEALERSHIP_NOT_FOUND", "Cannot add inventory for a dealership that does not exist.");
+  }
+
+  try {
+    const vehicle = new Inventory({
+      dealer_id: Number(req.body.dealer_id),
+      make: req.body.make.trim(),
+      model: req.body.model.trim(),
+      bodyType: req.body.bodyType.trim(),
+      year: Number(req.body.year),
+      mileage: Number(req.body.mileage),
+    });
+
+    const saved = await vehicle.save();
+    return res.status(201).json(saved);
+  } catch (error) {
+    return sendError(res, 500, "ADD_INVENTORY_FAILED", "Failed to add inventory item.");
+  }
+});
+
+// PUT /updateInventory/:id  — update a vehicle by its MongoDB _id
+app.put("/updateInventory/:id", async (req, res) => {
+  const vehicleId = req.params.id;
+
+  // Validate only the fields that are provided (partial update)
+  const validation = validateInventoryPayload(req.body, false);
+  if (!validation.valid) {
+    return sendError(res, 400, "INVALID_INVENTORY_PAYLOAD", validation.message);
+  }
+
+  const ALLOWED = ["make", "model", "bodyType", "year", "mileage"];
+  const updates = {};
+  for (const field of ALLOWED) {
+    if (req.body[field] !== undefined) {
+      updates[field] = field === "year" || field === "mileage"
+        ? Number(req.body[field])
+        : String(req.body[field]).trim();
+    }
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return sendError(res, 400, "NO_UPDATE_FIELDS", "At least one updatable field must be provided.");
+  }
+
+  try {
+    const updated = await Inventory.findByIdAndUpdate(
+      vehicleId,
+      { $set: updates },
+      { new: true, runValidators: true },
+    );
+    if (!updated) {
+      return sendError(res, 404, "VEHICLE_NOT_FOUND", "Vehicle not found.");
+    }
+    return res.json(updated);
+  } catch (error) {
+    if (error.name === "CastError") {
+      return sendError(res, 400, "INVALID_VEHICLE_ID", "Invalid vehicle id format.");
+    }
+    return sendError(res, 500, "UPDATE_INVENTORY_FAILED", "Failed to update inventory item.");
+  }
+});
+
+// DELETE /deleteInventory/:id  — delete a vehicle by its MongoDB _id
+app.delete("/deleteInventory/:id", async (req, res) => {
+  const vehicleId = req.params.id;
+
+  try {
+    const deleted = await Inventory.findByIdAndDelete(vehicleId);
+    if (!deleted) {
+      return sendError(res, 404, "VEHICLE_NOT_FOUND", "Vehicle not found.");
+    }
+    return res.json({ message: "Vehicle deleted." });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return sendError(res, 400, "INVALID_VEHICLE_ID", "Invalid vehicle id format.");
+    }
+    return sendError(res, 500, "DELETE_INVENTORY_FAILED", "Failed to delete inventory item.");
+  }
+});
+
+// ── End of inventory routes ──────────────────────────────────────────────────
 
 // Explicit async startup wrapper for all bootstrap operations.
 const startServer = async () => {

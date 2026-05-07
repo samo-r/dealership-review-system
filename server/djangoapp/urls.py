@@ -49,4 +49,25 @@ urlpatterns = [
         view=views.delete_review,
         name="delete_review",
     ),
+    # Inventory endpoints
+    path(
+        route="inventory/dealer/<int:dealer_id>",
+        view=views.get_dealer_inventory,
+        name="get_dealer_inventory",
+    ),
+    path(
+        route="inventory/add",
+        view=views.add_inventory,
+        name="add_inventory",
+    ),
+    path(
+        route="inventory/<str:vehicle_id>/update",
+        view=views.update_inventory,
+        name="update_inventory",
+    ),
+    path(
+        route="inventory/<str:vehicle_id>/delete",
+        view=views.delete_inventory,
+        name="delete_inventory",
+    ),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

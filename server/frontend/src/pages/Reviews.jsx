@@ -1,0 +1,178 @@
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import ReviewCard from "../components/common/ReviewCard";
+
+/**
+ * Reviews page — public list of all reviews across all dealerships
+ */
+const Reviews = () => {
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedSentiment, setSelectedSentiment] = useState("all");
+
+  useEffect(() => {
+    const fetchAllReviews = async () => {
+      try {
+        // First, get all dealerships
+        const dealeRes = await fetch(
+          `${window.location.origin}/djangoapp/get_dealers`
+        );
+        const dealeData = await dealeRes.json();
+        if (dealeData.status !== 200) {
+          setLoading(false);
+          return;
+        }
+
+        const dealerships = dealeData.dealers || [];
+
+        // Fetch reviews for each dealership and combine
+        const allReviews = [];
+        for (const dealer of dealerships) {
+          try {
+            const reviewRes = await fetch(
+              `${window.location.origin}/djangoapp/reviews/dealer/${dealer.id}`
+            );
+            const reviewData = await reviewRes.json();
+            if (reviewData.status === 200 && reviewData.reviews) {
+              allReviews.push(
+                ...reviewData.reviews.map((r) => ({
+                  ...r,
+                  dealerName: dealer.full_name,
+                }))
+              );
+            }
+          } catch (err) {
+            console.error(`Error fetching reviews for dealer ${dealer.id}:`, err);
+          }
+        }
+
+        // Sort by newest first
+        allReviews.sort(
+          (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+        );
+        setReviews(allReviews);
+      } catch (err) {
+        console.error("Error fetching reviews:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllReviews();
+  }, []);
+
+  // Filter reviews by sentiment
+  const filteredReviews =
+    selectedSentiment === "all"
+      ? reviews
+      : reviews.filter((r) => r.sentiment === selectedSentiment);
+
+  const sentimentCounts = {
+    all: reviews.length,
+    positive: reviews.filter((r) => r.sentiment === "positive").length,
+    neutral: reviews.filter((r) => r.sentiment === "neutral").length,
+    negative: reviews.filter((r) => r.sentiment === "negative").length,
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <section className="bg-white border-b border-gray-200 py-8">
+        <div className="max-w-6xl mx-auto px-4">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            Customer Reviews
+          </h1>
+          <p className="text-gray-600">
+            Transparent feedback from real customers about their dealership
+            experience.
+          </p>
+        </div>
+      </section>
+
+      {/* Filters */}
+      <section className="bg-white border-b border-gray-200 py-4 sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: "all", label: "All Reviews", icon: "📋" },
+              { id: "positive", label: "5 Stars", icon: "⭐" },
+              { id: "neutral", label: "3 Stars", icon: "😐" },
+              { id: "negative", label: "1 Star", icon: "👎" },
+            ].map((filter) => (
+              <button
+                key={filter.id}
+                onClick={() => setSelectedSentiment(filter.id)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                  selectedSentiment === filter.id
+                    ? "bg-brand-primary text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                {filter.icon} {filter.label} ({sentimentCounts[filter.id]})
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Reviews Grid */}
+      <section className="py-12">
+        <div className="max-w-6xl mx-auto px-4">
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">Loading reviews...</p>
+            </div>
+          ) : filteredReviews.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredReviews.map((review) => (
+                <div key={review.id} className="flex flex-col">
+                  <ReviewCard review={review} />
+                  <p className="text-xs text-gray-500 mt-2 px-1">
+                    @ <strong>{review.dealerName}</strong>
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-white rounded-lg">
+              <p className="text-gray-600 text-lg">
+                No reviews found for the selected filter.
+              </p>
+              <button
+                onClick={() => setSelectedSentiment("all")}
+                className="mt-4 text-brand-primary hover:underline font-medium"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="bg-brand-primary text-white py-12">
+        <div className="max-w-6xl mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold mb-4">Have a story to share?</h2>
+          <p className="text-brand-light mb-6">
+            Tell other customers about your dealership experience.
+          </p>
+          <Link
+            to="/dealers"
+            className="inline-flex items-center px-8 py-3 bg-white text-brand-primary rounded-lg font-bold hover:bg-brand-light transition-colors"
+          >
+            Write a Review →
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-gray-400 py-8">
+        <div className="max-w-6xl mx-auto px-4 text-center">
+          <p>&copy; 2026 Dealership Marketplace. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default Reviews;
