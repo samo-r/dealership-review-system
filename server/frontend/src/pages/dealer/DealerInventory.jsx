@@ -7,7 +7,7 @@ import VehicleForm from "../../components/common/VehicleForm";
  * DEALER_ADMIN can only manage inventory for their own assigned dealership
  */
 const DealerInventory = () => {
-  const { user } = useAuth();
+  const { user, authHeaders } = useAuth();
   const dealerId = user?.assignedDealerId;
 
   const [vehicles, setVehicles] = useState([]);
@@ -40,7 +40,7 @@ const DealerInventory = () => {
         `${window.location.origin}/djangoapp/inventory/dealer/${dealerId}`,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+            ...authHeaders(),
           },
         }
       );
@@ -75,7 +75,7 @@ const DealerInventory = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+            ...authHeaders(),
           },
           body: JSON.stringify({ ...vehicleData, dealer_id: dealerId }),
         }
@@ -111,7 +111,7 @@ const DealerInventory = () => {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+            ...authHeaders(),
           },
           body: JSON.stringify(vehicleData),
         }
@@ -145,7 +145,7 @@ const DealerInventory = () => {
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+            ...authHeaders(),
           },
         }
       );
@@ -181,7 +181,7 @@ const DealerInventory = () => {
   if (loading) {
     return (
       <div className="p-8 text-center">
-        <p className="text-gray-500">Loading inventory...</p>
+        <p className="text-slate-500">Loading inventory...</p>
       </div>
     );
   }
@@ -191,8 +191,8 @@ const DealerInventory = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Inventory</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-slate-900">Inventory</h1>
+          <p className="text-slate-600 mt-1">
             Manage vehicles for your dealership.
           </p>
         </div>
@@ -228,12 +228,12 @@ const DealerInventory = () => {
       {formMode && (
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">
+            <h2 className="text-xl font-bold text-slate-900">
               {formMode === "add" ? "Add Vehicle" : "Edit Vehicle"}
             </h2>
             <button
               onClick={closeForm}
-              className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+              className="text-slate-500 hover:text-slate-700 text-2xl leading-none"
               aria-label="Close form"
             >
               &times;
@@ -252,7 +252,7 @@ const DealerInventory = () => {
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         {vehicles.length === 0 ? (
           <div className="text-center py-16 px-4">
-            <p className="text-gray-500 text-lg mb-4">
+            <p className="text-slate-500 text-lg mb-4">
               No vehicles in inventory yet.
             </p>
             <button
@@ -265,48 +265,48 @@ const DealerInventory = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">
                     Make
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">
                     Model
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">
                     Year
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">
                     Price
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">
                     Mileage
                   </th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-700">
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-slate-100">
                 {vehicles.map((vehicle) => {
                   const id = vehicle._id;
                   return (
-                    <tr key={id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-gray-900">
+                    <tr key={id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-slate-900">
                         {vehicle.car_make}
                       </td>
-                      <td className="px-4 py-3 text-gray-700">
+                      <td className="px-4 py-3 text-slate-700">
                         {vehicle.car_model}
                       </td>
-                      <td className="px-4 py-3 text-gray-700">
+                      <td className="px-4 py-3 text-slate-700">
                         {vehicle.car_year}
                       </td>
-                      <td className="px-4 py-3 text-gray-700">
+                      <td className="px-4 py-3 text-slate-700">
                         {vehicle.price != null
                           ? `$${Number(vehicle.price).toLocaleString()}`
                           : "—"}
                       </td>
-                      <td className="px-4 py-3 text-gray-700">
+                      <td className="px-4 py-3 text-slate-700">
                         {vehicle.mileage != null
                           ? `${Number(vehicle.mileage).toLocaleString()} mi`
                           : "—"}
@@ -338,7 +338,7 @@ const DealerInventory = () => {
 
       {/* Vehicle count */}
       {vehicles.length > 0 && (
-        <p className="text-sm text-gray-500 text-right">
+        <p className="text-sm text-slate-500 text-right">
           {vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""} in
           inventory
         </p>
@@ -348,10 +348,10 @@ const DealerInventory = () => {
       {confirmDeleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="bg-white rounded-xl shadow-xl p-8 max-w-sm w-full mx-4">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
+            <h3 className="text-xl font-bold text-slate-900 mb-2">
               Delete Vehicle?
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-slate-600 mb-6">
               This action cannot be undone. The vehicle will be permanently
               removed from inventory.
             </p>
@@ -359,7 +359,7 @@ const DealerInventory = () => {
               <button
                 onClick={() => setConfirmDeleteId(null)}
                 disabled={deleteLoading}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
               >
                 Cancel
               </button>

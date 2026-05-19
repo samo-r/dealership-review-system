@@ -388,6 +388,12 @@ def create_dealer_admin(request):
     except (TypeError, ValueError):
         return api_error(400, "INVALID_DEALER_ID", "assignedDealerId must be a positive integer")
 
+    dealer_check = get_request("/fetchDealer/" + str(assigned_dealer_id))
+    if is_upstream_error(dealer_check):
+        return upstream_error_response(dealer_check)
+    if not dealer_check:
+        return api_error(404, "DEALER_NOT_FOUND", "Assigned dealership does not exist")
+
     if User.objects.filter(username=username).exists():
         return api_error(409, "USERNAME_TAKEN", f"Username '{username}' is already registered")
 
@@ -465,6 +471,66 @@ def get_dealer_reviews(request, dealer_id):
         return JsonResponse({"status": 200, "reviews": reviews})
     else:
         return api_error(400, "MISSING_DEALER_ID", "dealer_id is required")
+
+
+def get_my_reviews(request):
+    user, error_response = get_authenticated_user_from_token(request)
+    if error_response is not None:
+        return error_response
+
+    if not has_capability(user, "review.read"):
+        return api_error(403, "FORBIDDEN", "Insufficient role to read reviews")
+
+    dealerships = get_request("/fetchDealers")
+    if is_upstream_error(dealerships):
+        return upstream_error_response(dealerships)
+
+    dealer_name_by_id = {}
+    for dealer in dealerships or []:
+        dealer_id = dealer.get("id")
+        if dealer_id is not None:
+            dealer_name_by_id[str(dealer_id)] = dealer.get("full_name", "")
+
+    all_reviews = []
+    seen_ids = set()
+    for dealer_id in dealer_name_by_id.keys():
+        reviews = get_request("/fetchReviews/dealer/" + dealer_id)
+        if is_upstream_error(reviews):
+            continue
+
+        for review_detail in reviews or []:
+            author_id = review_detail.get("author_id")
+            author_username = review_detail.get("author_username", "")
+
+            is_owner = (
+                author_id == user.id
+                or str(author_id) == str(user.id)
+                or author_username == user.username
+            )
+            if not is_owner:
+                continue
+
+            review_id = review_detail.get("id") or review_detail.get("_id")
+            dedupe_key = str(review_id) if review_id is not None else json.dumps(
+                review_detail, sort_keys=True
+            )
+            if dedupe_key in seen_ids:
+                continue
+            seen_ids.add(dedupe_key)
+
+            response = analyze_review_sentiments(review_detail.get("review", ""))
+            if is_upstream_error(response):
+                review_detail["sentiment"] = "neutral"
+                review_detail["sentiment_error"] = True
+            else:
+                review_detail["sentiment"] = response.get("sentiment", "neutral")
+
+            dealer_id_value = review_detail.get("dealership")
+            review_detail["dealerName"] = dealer_name_by_id.get(str(dealer_id_value), "")
+            all_reviews.append(review_detail)
+
+    all_reviews.sort(key=lambda item: item.get("created_at", ""), reverse=True)
+    return JsonResponse({"status": 200, "reviews": all_reviews})
 
 
 # Update dealership view

@@ -1,93 +1,138 @@
 import React, { useState } from "react";
-import "./Login.css";
-import Header from "../Header/Header";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import {
+  getPostLoginPath,
+  getRedirectFromLocation,
+} from "../../utils/authRedirect";
 
-const Login = ({ onClose }) => {
+const Login = () => {
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
-  const { login } = useAuth();
-
-  // Fix: Added the trailing slash for Django compatibility
-  let login_url = window.location.origin + "/djangoapp/login/";
+  const [submitting, setSubmitting] = useState(false);
+  const { login, role, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = getRedirectFromLocation(location);
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    const res = await fetch(login_url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        userName: userName,
-        password: password,
-      }),
-    });
+    const trimmedUser = userName.trim();
+    if (!trimmedUser || !password) {
+      alert("Username and password are required.");
+      return;
+    }
 
-    const json = await res.json();
-    const tokens = json.tokens;
-    if (res.ok && tokens?.access) {
-      login({ access: tokens.access, refresh: tokens.refresh, user: json.user });
-      window.location.href = "/"; // RoleRedirect handles the landing page
-    } else {
-      const msg =
-        json.error?.message || "The user could not be authenticated.";
-      alert(msg);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/djangoapp/login/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userName: trimmedUser, password }),
+      });
+
+      let json = {};
+      try {
+        json = await res.json();
+      } catch {
+        alert("Invalid response from server.");
+        return;
+      }
+
+      const tokens = json.tokens;
+      const profile = json.user;
+
+      if (!res.ok || !tokens?.access || !profile?.userName || !profile?.role) {
+        const msg =
+          json.error?.message ||
+          "The user could not be authenticated. Check your credentials and try again.";
+        alert(msg);
+        return;
+      }
+
+      const stored = login({
+        access: tokens.access,
+        refresh: tokens.refresh,
+        user: profile,
+      });
+
+      if (!stored) {
+        alert("Signed in, but session could not be saved. Please try again.");
+        return;
+      }
+
+      navigate(getPostLoginPath(profile.role, redirectTo), { replace: true });
+    } catch (error) {
+      console.error("Login failed:", error);
+      alert("Unable to authenticate right now. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  if (isAuthenticated) {
+    return <Navigate to={getPostLoginPath(role, redirectTo)} replace />;
+  }
+
   return (
-    <div>
-      <Header />
-      <div onClick={onClose}>
-        <div
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-          className="modalContainer"
-        >
-          <form className="login_panel" onSubmit={handleLogin}>
-            {/* Added margin-bottom style for spacing between fields */}
-            <div style={{ marginBottom: "15px" }}>
-              <span className="input_field">Username </span>
-              <input
-                type="text"
-                name="username"
-                placeholder="Username"
-                className="input_field"
-                onChange={(e) => setUserName(e.target.value)}
-              />
-            </div>
+    <div className="w-full py-16">
+      <div className="mx-auto w-full max-w-md rounded-3xl border border-slate-200 bg-white px-8 py-10 shadow-lg">
+        <div className="mb-8 text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-primary">
+            Welcome back
+          </p>
+          <h1 className="mt-4 text-3xl font-semibold text-slate-900">Sign in to Autocars UG</h1>
+          <p className="mt-3 text-sm text-slate-600">
+            Access your dashboard, leave reviews, and manage your dealer profile.
+          </p>
+        </div>
 
-            <div style={{ marginBottom: "15px" }}>
-              <span className="input_field">Password </span>
-              <input
-                name="psw"
-                type="password"
-                placeholder="Password"
-                className="input_field"
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+        <form className="space-y-6" onSubmit={handleLogin}>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Username</label>
+            <input
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              type="text"
+              name="username"
+              placeholder="Username"
+              className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+            />
+          </div>
 
-            {/* Buttons container: display flex ensures they stay side-by-side */}
-            <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
-              <input className="action_button" type="submit" value="Login" />
-              <input
-                className="action_button"
-                type="button"
-                value="Cancel"
-                onClick={() => (window.location.href = "/")}
-              />
-            </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Password</label>
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              name="password"
+              type="password"
+              placeholder="Password"
+              className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+            />
+          </div>
 
-            <div style={{ marginTop: "15px" }}>
-              <a className="loginlink" href="/register">
-                Register Now
-              </a>
-            </div>
-          </form>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full rounded-full bg-brand-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {submitting ? "Signing in..." : "Login"}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center text-sm text-slate-600">
+          Don’t have an account?{' '}
+          <button
+            type="button"
+            onClick={() => navigate("/register")}
+            className="font-semibold text-brand-primary hover:text-brand-dark"
+          >
+            Register now
+          </button>
         </div>
       </div>
     </div>

@@ -54,7 +54,7 @@ describe("App route authorization", () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText(/Premier Dealership Marketplace/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /find a dealership/i })).toBeInTheDocument();
     expect(screen.queryByText(/dealer dashboard/i)).not.toBeInTheDocument();
   });
 

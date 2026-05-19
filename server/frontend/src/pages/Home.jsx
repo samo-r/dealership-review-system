@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import DealershipCard from "../components/common/DealershipCard";
 import ReviewCard from "../components/common/ReviewCard";
-import ActionButton from "../components/common/ActionButton";
 
 /**
  * Home page — landing page with:
@@ -50,13 +49,11 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="w-full bg-white">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-brand-primary to-brand-dark text-white py-20">
         <div className="max-w-6xl mx-auto px-4 text-center">
-          <h1 className="text-5xl font-bold mb-4">
-            Premier Dealership Marketplace
-          </h1>
+          <h1 className="text-5xl font-bold mb-4">Autocars UG</h1>
           <p className="text-xl text-brand-light mb-8">
             Transparent reviews. Real customer feedback. Find your perfect
             dealership today.
@@ -79,18 +76,18 @@ const Home = () => {
       </section>
 
       {/* Dealership Carousel */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-slate-50">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+          <h2 className="text-3xl font-bold text-slate-900 mb-2">
             Featured Dealerships
           </h2>
-          <p className="text-gray-600 mb-8">
+          <p className="text-slate-600 mb-8">
             Browse trusted dealerships in your area
           </p>
 
           {loading ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">Loading dealerships...</p>
+              <p className="text-slate-500">Loading dealerships...</p>
             </div>
           ) : (
             <>
@@ -100,7 +97,7 @@ const Home = () => {
                     <DealershipCard key={dealer.id} dealer={dealer} />
                   ))
                 ) : (
-                  <p className="text-gray-500">No dealerships available.</p>
+                  <p className="text-slate-500">No dealerships available.</p>
                 )}
               </div>
               <div className="text-center">
@@ -119,10 +116,10 @@ const Home = () => {
       {/* Wall of Love — Top Reviews */}
       <section className="py-16 bg-white">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+          <h2 className="text-3xl font-bold text-slate-900 mb-2">
             Wall of Love
           </h2>
-          <p className="text-gray-600 mb-8">
+          <p className="text-slate-600 mb-8">
             See what customers are saying about our dealerships
           </p>
 
@@ -133,9 +130,9 @@ const Home = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <p className="text-gray-500">No reviews yet.</p>
-              <p className="text-gray-400 text-sm mt-2">
+            <div className="text-center py-12 bg-slate-50 rounded-lg">
+              <p className="text-slate-500">No reviews yet.</p>
+              <p className="text-slate-400 text-sm mt-2">
                 Be the first to share your experience!
               </p>
             </div>
@@ -153,12 +150,12 @@ const Home = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gray-100 py-16">
+      <section className="bg-slate-100 py-16">
         <div className="max-w-6xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl font-bold text-slate-900 mb-4">
             Share Your Experience
           </h2>
-          <p className="text-gray-600 mb-8">
+          <p className="text-slate-600 mb-8">
             Help other customers make informed decisions. Leave a review today.
           </p>
           <Link
@@ -170,12 +167,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-8">
-        <div className="max-w-6xl mx-auto px-4 text-center">
-          <p>&copy; 2026 Dealership Marketplace. All rights reserved.</p>
-        </div>
-      </footer>
     </div>
   );
 };

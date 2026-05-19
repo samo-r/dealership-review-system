@@ -19,7 +19,7 @@ const ReviewCard = ({ review, onDelete, showDeleteButton = false }) => {
   // Map sentiment to star count and color
   const sentimentMap = {
     positive: { stars: 5, color: "text-yellow-400", bgColor: "bg-yellow-50" },
-    neutral: { stars: 3, color: "text-gray-400", bgColor: "bg-gray-50" },
+    neutral: { stars: 3, color: "text-slate-400", bgColor: "bg-slate-50" },
     negative: { stars: 1, color: "text-red-400", bgColor: "bg-red-50" },
   };
 
@@ -27,7 +27,7 @@ const ReviewCard = ({ review, onDelete, showDeleteButton = false }) => {
   const { stars, color, bgColor } = sentimentMap[sentiment] || sentimentMap.neutral;
 
   return (
-    <div className={`${bgColor} rounded-lg p-4 border border-gray-200`}>
+    <div className={`${bgColor} rounded-lg p-4 border border-slate-200`}>
       {/* Header: Stars + Car info */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
@@ -35,7 +35,7 @@ const ReviewCard = ({ review, onDelete, showDeleteButton = false }) => {
             {[...Array(5)].map((_, i) => (
               <svg
                 key={i}
-                className={`h-4 w-4 ${i < stars ? color : "text-gray-300"}`}
+                className={`h-4 w-4 ${i < stars ? color : "text-slate-300"}`}
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -43,7 +43,7 @@ const ReviewCard = ({ review, onDelete, showDeleteButton = false }) => {
               </svg>
             ))}
           </div>
-          <p className="text-xs text-gray-600 font-medium">
+          <p className="text-xs text-slate-600 font-medium">
             {review.car_make} {review.car_model} ({review.car_year})
           </p>
         </div>
@@ -60,10 +60,10 @@ const ReviewCard = ({ review, onDelete, showDeleteButton = false }) => {
       </div>
 
       {/* Review text */}
-      <p className="text-sm text-gray-800 mb-3 line-clamp-3">{review.review}</p>
+      <p className="text-sm text-slate-800 mb-3 line-clamp-3">{review.review}</p>
 
       {/* Footer: Author */}
-      <div className="text-xs text-gray-600 border-t border-gray-300 pt-2">
+      <div className="text-xs text-slate-600 border-t border-slate-300 pt-2">
         <strong>{review.author_username || "Anonymous"}</strong>
       </div>
     </div>

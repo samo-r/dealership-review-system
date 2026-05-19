@@ -9,6 +9,7 @@ import DashboardLayout from "./layouts/DashboardLayout";
 // Guards
 import RequireAuth from "./components/guards/RequireAuth";
 import RequireRole from "./components/guards/RequireRole";
+import RoleRedirect from "./components/guards/RoleRedirect";
 
 // Public pages
 import Home from "./pages/Home";
@@ -18,16 +19,18 @@ import Register from "./components/Register/Register";
 import Dealers from "./components/Dealers/Dealers";
 import Dealer from "./components/Dealers/Dealer";
 import PostReview from "./components/Dealers/PostReview";
+import MyReviews from "./pages/customer/MyReviews";
 
 // Dealer Admin pages
 import DealerOverview from "./pages/dealer/DealerOverview";
 import DealerReviews from "./pages/dealer/DealerReviews";
 import DealerProfile from "./pages/dealer/DealerProfile";
 import DealerInventory from "./pages/dealer/DealerInventory";
+import CreateDealerAdmin from "./pages/admin/CreateDealerAdmin";
 
 // Admin dashboard placeholder (Sprint E)
 const AdminDashboardHome = () => (
-  <div className="p-6 text-gray-600">Admin dashboard — coming in Sprint E.</div>
+  <div className="p-6 text-slate-600">Admin dashboard — coming in Sprint E.</div>
 );
 
 function App() {
@@ -36,16 +39,27 @@ function App() {
       <Routes>
         {/* ── Public routes (no auth required) ─────────────────────── */}
         <Route element={<PublicLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/reviews" element={<Reviews />} />
-          <Route path="/login" element={<LoginPanel />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/dealers" element={<Dealers />} />
-          <Route path="/dealer/:id" element={<Dealer />} />
+          <Route index element={<RoleRedirect />} />
+          <Route path="home" element={<Home />} />
+          <Route path="reviews" element={<Reviews />} />
+          <Route path="login" element={<LoginPanel />} />
+          <Route path="register" element={<Register />} />
+          <Route path="dealers" element={<Dealers />} />
+          <Route path="dealer/:id" element={<Dealer />} />
+          <Route
+            path="customer/my-reviews"
+            element={
+              <RequireAuth>
+                <RequireRole allowed={["CUSTOMER"]}>
+                  <MyReviews />
+                </RequireRole>
+              </RequireAuth>
+            }
+          />
 
           {/* Post review: requires login as CUSTOMER or ADMIN */}
           <Route
-            path="/postreview/:id"
+            path="postreview/:id"
             element={
               <RequireAuth>
                 <RequireRole allowed={["CUSTOMER", "ADMIN"]}>
@@ -83,6 +97,10 @@ function App() {
           }
         >
           <Route path="/admin/dashboard" element={<AdminDashboardHome />} />
+          <Route
+            path="/admin/create-dealer-admin"
+            element={<CreateDealerAdmin />}
+          />
         </Route>
       </Routes>
     </AuthProvider>

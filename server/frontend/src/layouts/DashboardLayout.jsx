@@ -11,6 +11,7 @@ const roleLinks = {
   ],
   ADMIN: [
     { to: "/admin/dashboard", label: "Overview" },
+    { to: "/admin/create-dealer-admin", label: "Create Dealer Admin" },
     { to: "/admin/dealerships", label: "Dealerships" },
     { to: "/admin/users", label: "Users" },
     { to: "/admin/inventory", label: "Inventory" },
@@ -29,11 +30,11 @@ const DashboardLayout = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-slate-100">
       {/* Sidebar */}
       <aside className="w-56 bg-dashboard-bg text-white flex flex-col shrink-0">
         <div className="px-6 py-5 border-b border-dashboard-border">
-          <span className="text-lg font-bold tracking-wide">Dealerships</span>
+          <span className="text-lg font-bold tracking-wide">Autocars UG</span>
           <div className="text-xs text-dashboard-text mt-1">{role}</div>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
@@ -66,12 +67,12 @@ const DashboardLayout = () => {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-          <span className="text-sm text-gray-500">
+        <header className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between">
+          <span className="text-sm text-slate-500">
             {role === "ADMIN" ? "System Admin" : "Dealer Admin"} Panel
           </span>
           <a
-            href="/"
+            href="/home"
             className="text-sm text-brand-primary hover:underline"
           >
             ← Public Site

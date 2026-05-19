@@ -4,15 +4,24 @@ import { useAuth } from "../../context/AuthContext";
 
 /**
  * Redirects unauthenticated users to /login.
- * Preserves the page they were trying to visit so they can
- * be sent back after login (future enhancement).
+ * Preserves the intended destination via redirectTo (read by Login after sign-in).
  */
 const RequireAuth = ({ children }) => {
-  const { token } = useAuth();
+  const { isAuthenticated, token } = useAuth();
   const location = useLocation();
 
-  if (!token) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  const authenticated =
+    typeof isAuthenticated === "boolean" ? isAuthenticated : Boolean(token);
+
+  if (!authenticated) {
+    const redirectTo = `${location.pathname}${location.search}${location.hash}`;
+    return (
+      <Navigate
+        to="/login"
+        state={{ redirectTo, from: location }}
+        replace
+      />
+    );
   }
 
   return children;

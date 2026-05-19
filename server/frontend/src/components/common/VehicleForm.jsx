@@ -75,14 +75,14 @@ const VehicleForm = ({
       onSubmit={handleSubmit}
       className="bg-white rounded-lg shadow-md p-6 max-w-2xl"
     >
-      <h2 className="text-xl font-bold text-gray-900 mb-6">
+      <h2 className="text-xl font-bold text-slate-900 mb-6">
         {vehicle ? "Edit Vehicle" : "Add Vehicle"}
       </h2>
 
       {/* Dealership field — hidden if fixedDealerId, dropdown if admin */}
       {!fixedDealerId && (
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             Dealership
           </label>
           <select
@@ -90,7 +90,7 @@ const VehicleForm = ({
             value={formData.dealership}
             onChange={handleChange}
             className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary ${
-              errors.dealership ? "border-red-500" : "border-gray-300"
+              errors.dealership ? "border-red-500" : "border-slate-300"
             }`}
           >
             <option value="">Select a dealership...</option>
@@ -108,7 +108,7 @@ const VehicleForm = ({
 
       {/* Car make */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-slate-700 mb-1">
           Car Make *
         </label>
         <input
@@ -118,7 +118,7 @@ const VehicleForm = ({
           value={formData.car_make}
           onChange={handleChange}
           className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary ${
-            errors.car_make ? "border-red-500" : "border-gray-300"
+            errors.car_make ? "border-red-500" : "border-slate-300"
           }`}
         />
         {errors.car_make && (
@@ -128,7 +128,7 @@ const VehicleForm = ({
 
       {/* Car model */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-slate-700 mb-1">
           Car Model *
         </label>
         <input
@@ -138,7 +138,7 @@ const VehicleForm = ({
           value={formData.car_model}
           onChange={handleChange}
           className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary ${
-            errors.car_model ? "border-red-500" : "border-gray-300"
+            errors.car_model ? "border-red-500" : "border-slate-300"
           }`}
         />
         {errors.car_model && (
@@ -148,7 +148,7 @@ const VehicleForm = ({
 
       {/* Car year */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-slate-700 mb-1">
           Car Year *
         </label>
         <input
@@ -159,7 +159,7 @@ const VehicleForm = ({
           value={formData.car_year}
           onChange={handleChange}
           className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary ${
-            errors.car_year ? "border-red-500" : "border-gray-300"
+            errors.car_year ? "border-red-500" : "border-slate-300"
           }`}
         />
         {errors.car_year && (
@@ -169,7 +169,7 @@ const VehicleForm = ({
 
       {/* Price (optional) */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-slate-700 mb-1">
           Price (optional)
         </label>
         <input
@@ -178,13 +178,13 @@ const VehicleForm = ({
           placeholder="e.g., 25000"
           value={formData.price}
           onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+          className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
         />
       </div>
 
       {/* Mileage (optional) */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-slate-700 mb-1">
           Mileage (optional)
         </label>
         <input
@@ -193,7 +193,7 @@ const VehicleForm = ({
           placeholder="e.g., 45000"
           value={formData.mileage}
           onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+          className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
         />
       </div>
 

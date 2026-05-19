@@ -16,10 +16,10 @@ jest.mock("../../context/AuthContext", () => {
 const { useAuth } = require("../../context/AuthContext");
 
 describe("DealerInventory RBAC behavior", () => {
+  const authHeaders = () => ({ Authorization: "Bearer test-token" });
+
   beforeEach(() => {
     jest.clearAllMocks();
-    localStorage.clear();
-    localStorage.setItem("access_token", "test-token");
   });
 
   afterEach(() => {
@@ -33,6 +33,7 @@ describe("DealerInventory RBAC behavior", () => {
       user: { assignedDealerId: 1 },
       token: "test-token",
       role: "DEALER_ADMIN",
+      authHeaders,
     });
 
     global.fetch = jest
@@ -86,6 +87,7 @@ describe("DealerInventory RBAC behavior", () => {
       user: { userName: "customer" },
       token: "fake-token",
       role: "CUSTOMER",
+      authHeaders: () => ({ Authorization: "Bearer fake-token" }),
     });
 
     global.fetch = jest.fn().mockResolvedValue({
@@ -98,7 +100,7 @@ describe("DealerInventory RBAC behavior", () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText(/Premier Dealership Marketplace/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /find a dealership/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /add vehicle/i })).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import "./Dealers.css";
-import "../assets/style.css";
 import DealershipCard from "../common/DealershipCard";
 import ActionButton from "../common/ActionButton";
 import { useAuth } from "../../context/AuthContext";
@@ -63,26 +61,26 @@ const Dealers = () => {
   }, [searchTerm, selectedState, allDealers]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="w-full">
       {/* Header */}
-      <section className="bg-white border-b border-gray-200 py-8">
+      <section className="bg-white border-b border-slate-200 py-8">
         <div className="max-w-6xl mx-auto px-4">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-4xl font-bold text-slate-900 mb-2">
             Find a Dealership
           </h1>
-          <p className="text-gray-600">
+          <p className="text-slate-600">
             Browse and compare dealerships in your area.
           </p>
         </div>
       </section>
 
       {/* Search and Filter Bar */}
-      <section className="bg-white border-b border-gray-200 py-6 sticky top-0 z-10">
+      <section className="bg-white border-b border-slate-200 py-6 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end">
             {/* Search input */}
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Search by name or city
               </label>
               <input
@@ -90,19 +88,19 @@ const Dealers = () => {
                 placeholder="e.g., Toyota Dealership, New York"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               />
             </div>
 
             {/* State filter */}
             <div className="w-full md:w-48">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Filter by state
               </label>
               <select
                 value={selectedState}
                 onChange={(e) => setSelectedState(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               >
                 <option value="">All States</option>
                 {states.map((state) => (
@@ -121,15 +119,15 @@ const Dealers = () => {
         <div className="max-w-6xl mx-auto px-4">
           {loading ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">Loading dealerships...</p>
+              <p className="text-slate-500">Loading dealerships...</p>
             </div>
           ) : dealersList.length > 0 ? (
             <>
-              <p className="text-gray-600 mb-6">
+              <p className="text-slate-600 mb-6">
                 Showing <strong>{dealersList.length}</strong> dealership
                 {dealersList.length !== 1 ? "s" : ""}
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {dealersList.map((dealer) => (
                   <div key={dealer.id} className="flex flex-col">
                     <DealershipCard dealer={dealer} />
@@ -147,8 +145,8 @@ const Dealers = () => {
               </div>
             </>
           ) : (
-            <div className="text-center py-12 bg-white rounded-lg">
-              <p className="text-gray-600 text-lg">
+            <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center">
+              <p className="text-slate-600 text-lg">
                 No dealerships found matching your search.
               </p>
               <button
@@ -156,7 +154,7 @@ const Dealers = () => {
                   setSearchTerm("");
                   setSelectedState("");
                 }}
-                className="mt-4 text-brand-primary hover:underline font-medium"
+                className="mt-4 inline-flex rounded-full bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark"
               >
                 Clear filters
               </button>
@@ -165,12 +163,6 @@ const Dealers = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-8">
-        <div className="max-w-6xl mx-auto px-4 text-center">
-          <p>&copy; 2026 Dealership Marketplace. All rights reserved.</p>
-        </div>
-      </footer>
     </div>
   );
 };

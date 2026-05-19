@@ -69,7 +69,7 @@ const DealerOverview = () => {
   if (loading) {
     return (
       <div className="p-8 text-center">
-        <p className="text-gray-500">Loading dashboard...</p>
+        <p className="text-slate-500">Loading dashboard...</p>
       </div>
     );
   }
@@ -88,8 +88,8 @@ const DealerOverview = () => {
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+        <p className="text-slate-600 mt-1">
           Welcome back, {user?.userName}!.
         </p>
       </div>
@@ -99,10 +99,10 @@ const DealerOverview = () => {
         <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-brand-primary">
           <div className="flex justify-between items-start">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-2xl font-bold text-slate-900">
                 {dealership.full_name}
               </h2>
-              <p className="text-gray-600 mt-1">{dealership.short_name}</p>
+              <p className="text-slate-600 mt-1">{dealership.short_name}</p>
             </div>
             <Link
               to="/dealer/profile"
@@ -112,18 +112,18 @@ const DealerOverview = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-200">
+          <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-200">
             <div>
-              <p className="text-sm text-gray-500 uppercase tracking-wide">
+              <p className="text-sm text-slate-500 uppercase tracking-wide">
                 Address
               </p>
-              <p className="text-gray-900 font-medium">{dealership.address}</p>
+              <p className="text-slate-900 font-medium">{dealership.address}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500 uppercase tracking-wide">
+              <p className="text-sm text-slate-500 uppercase tracking-wide">
                 City
               </p>
-              <p className="text-gray-900 font-medium">
+              <p className="text-slate-900 font-medium">
                 {dealership.city}, {dealership.state} {dealership.zip}
               </p>
             </div>
@@ -134,7 +134,7 @@ const DealerOverview = () => {
       {/* Review Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow-md p-6">
-          <p className="text-gray-600 text-sm uppercase tracking-wide">
+          <p className="text-slate-600 text-sm uppercase tracking-wide">
             Total Reviews
           </p>
           <p className="text-4xl font-bold text-brand-primary mt-2">
@@ -143,7 +143,7 @@ const DealerOverview = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6">
-          <p className="text-gray-600 text-sm uppercase tracking-wide">
+          <p className="text-slate-600 text-sm uppercase tracking-wide">
             ⭐ 5-Star Reviews
           </p>
           <p className="text-4xl font-bold text-green-600 mt-2">
@@ -152,7 +152,7 @@ const DealerOverview = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6">
-          <p className="text-gray-600 text-sm uppercase tracking-wide">
+          <p className="text-slate-600 text-sm uppercase tracking-wide">
             😐 Neutral Reviews
           </p>
           <p className="text-4xl font-bold text-yellow-600 mt-2">
@@ -161,7 +161,7 @@ const DealerOverview = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6">
-          <p className="text-gray-600 text-sm uppercase tracking-wide">
+          <p className="text-slate-600 text-sm uppercase tracking-wide">
             👎 Negative Reviews
           </p>
           <p className="text-4xl font-bold text-red-600 mt-2">
@@ -173,10 +173,10 @@ const DealerOverview = () => {
       {/* Sentiment Progress Bar */}
       {totalReviews > 0 && (
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">
+          <h3 className="text-lg font-bold text-slate-900 mb-4">
             Sentiment Breakdown
           </h3>
-          <div className="flex gap-2 h-8 rounded-full overflow-hidden bg-gray-200">
+          <div className="flex gap-2 h-8 rounded-full overflow-hidden bg-slate-200">
             <div
               className="bg-green-600 flex items-center justify-center text-white text-xs font-bold"
               style={{
@@ -205,19 +205,19 @@ const DealerOverview = () => {
           <div className="flex gap-6 mt-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-green-600 rounded-full" />
-              <span className="text-gray-700">
+              <span className="text-slate-700">
                 Positive ({sentimentCounts.positive})
               </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-yellow-600 rounded-full" />
-              <span className="text-gray-700">
+              <span className="text-slate-700">
                 Neutral ({sentimentCounts.neutral})
               </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-red-600 rounded-full" />
-              <span className="text-gray-700">
+              <span className="text-slate-700">
                 Negative ({sentimentCounts.negative})
               </span>
             </div>
@@ -227,37 +227,37 @@ const DealerOverview = () => {
 
       {/* Quick Links */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Links</h3>
+        <h3 className="text-lg font-bold text-slate-900 mb-4">Quick Links</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
             to="/dealer/inventory"
-            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-brand-primary hover:bg-brand-primary hover:bg-opacity-5 transition-colors"
+            className="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:border-brand-primary hover:bg-brand-primary hover:bg-opacity-5 transition-colors"
           >
             <div>
-              <p className="font-bold text-gray-900">Inventory</p>
-              <p className="text-sm text-gray-600">Manage vehicles</p>
+              <p className="font-bold text-slate-900">Inventory</p>
+              <p className="text-sm text-slate-600">Manage vehicles</p>
             </div>
             <span className="text-2xl">📦</span>
           </Link>
 
           <Link
             to="/dealer/reviews"
-            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-brand-primary hover:bg-brand-primary hover:bg-opacity-5 transition-colors"
+            className="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:border-brand-primary hover:bg-brand-primary hover:bg-opacity-5 transition-colors"
           >
             <div>
-              <p className="font-bold text-gray-900">Reviews</p>
-              <p className="text-sm text-gray-600">View customer feedback</p>
+              <p className="font-bold text-slate-900">Reviews</p>
+              <p className="text-sm text-slate-600">View customer feedback</p>
             </div>
             <span className="text-2xl">⭐</span>
           </Link>
 
           <Link
             to="/dealer/profile"
-            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-brand-primary hover:bg-brand-primary hover:bg-opacity-5 transition-colors"
+            className="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:border-brand-primary hover:bg-brand-primary hover:bg-opacity-5 transition-colors"
           >
             <div>
-              <p className="font-bold text-gray-900">Profile</p>
-              <p className="text-sm text-gray-600">Edit dealership info</p>
+              <p className="font-bold text-slate-900">Profile</p>
+              <p className="text-sm text-slate-600">Edit dealership info</p>
             </div>
             <span className="text-2xl">⚙️</span>
           </Link>
@@ -267,18 +267,18 @@ const DealerOverview = () => {
       {/* Recent Activity */}
       {reviews.length > 0 && (
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">
+          <h3 className="text-lg font-bold text-slate-900 mb-4">
             Recent Reviews
           </h3>
           <div className="space-y-3 max-h-64 overflow-y-auto">
             {reviews.slice(0, 5).map((review) => (
               <div
                 key={review.id}
-                className="flex items-start justify-between p-3 bg-gray-50 rounded-lg"
+                className="flex items-start justify-between p-3 bg-slate-50 rounded-lg"
               >
                 <div className="flex-1">
-                  <p className="font-medium text-gray-900">{review.name}</p>
-                  <p className="text-sm text-gray-600">{review.review}</p>
+                  <p className="font-medium text-slate-900">{review.name}</p>
+                  <p className="text-sm text-slate-600">{review.review}</p>
                 </div>
                 <div className="text-right ml-4">
                   <div

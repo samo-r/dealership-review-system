@@ -2,4 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Existing component CSS is imported per-component; nothing here overrides it. */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply min-h-screen bg-slate-50 font-sans text-slate-900 antialiased;
+    margin: 0;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+
+  a {
+    @apply text-brand-primary transition-colors;
+  }
+
+  a:hover {
+    @apply text-brand-dark;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-primary ring-offset-2 ring-offset-slate-50;
+  }
+}

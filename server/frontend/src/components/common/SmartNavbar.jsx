@@ -20,8 +20,8 @@ const SmartNavbar = () => {
 
   // Guest menu — no authentication
   const guestMenu = [
-    { label: "Home", to: "/" },
-    { label: "Dealerships", to: "/dealers" },
+    { label: "Home", to: "/home" },
+    { label: "Dealers", to: "/dealers" },
     { label: "Reviews", to: "/reviews" },
     { label: "Login", to: "/login", button: true },
     { label: "Register", to: "/register", button: true, secondary: true },
@@ -30,7 +30,7 @@ const SmartNavbar = () => {
   // Customer menu — can create reviews
   const customerMenu = [
     { label: "Home", to: "/" },
-    { label: "Dealerships", to: "/dealers" },
+    { label: "Dealers", to: "/dealers" },
     { label: "Reviews", to: "/reviews" },
     { label: "My Reviews", to: "/customer/my-reviews" },
   ];
@@ -65,7 +65,7 @@ const SmartNavbar = () => {
             to="/"
             className="flex items-center text-xl font-bold text-brand-primary"
           >
-            Dealerships
+            Autocars UG
           </Link>
 
           {/* Desktop menu */}
@@ -90,7 +90,7 @@ const SmartNavbar = () => {
                 <Link
                   key={item.to}
                   to={item.to}
-                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-brand-primary hover:bg-gray-50 transition-colors"
+                  className="px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:text-brand-primary hover:bg-slate-50 transition-colors"
                 >
                   {item.label}
                 </Link>
@@ -99,10 +99,10 @@ const SmartNavbar = () => {
 
             {/* User info + logout for authenticated */}
             {user && (
-              <div className="ml-4 flex items-center space-x-3 border-l border-gray-200 pl-4">
+              <div className="ml-4 flex items-center space-x-3 border-l border-slate-200 pl-4">
                 <div className="text-sm">
-                  <div className="font-medium text-gray-900">{user.userName}</div>
-                  <div className="text-gray-500 text-xs">{role}</div>
+                  <div className="font-medium text-slate-900">{user.userName}</div>
+                  <div className="text-slate-500 text-xs">{role}</div>
                 </div>
                 <button
                   onClick={handleLogout}
@@ -117,7 +117,7 @@ const SmartNavbar = () => {
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-brand-primary hover:bg-gray-100 focus:outline-none"
+            className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-slate-700 hover:text-brand-primary hover:bg-slate-100 focus:outline-none"
           >
             <svg
               className="h-6 w-6"
@@ -138,7 +138,7 @@ const SmartNavbar = () => {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-200">
+        <div className="md:hidden bg-white border-t border-slate-200">
           <div className="px-2 pt-2 pb-3 space-y-1">
             {menu.map((item) => (
               <Link
@@ -148,7 +148,7 @@ const SmartNavbar = () => {
                 className={`block px-3 py-2 rounded-md text-base font-medium ${
                   item.button
                     ? "bg-brand-primary text-white hover:bg-brand-dark"
-                    : "text-gray-700 hover:text-brand-primary hover:bg-gray-50"
+                    : "text-slate-700 hover:text-brand-primary hover:bg-slate-50"
                 }`}
               >
                 {item.label}
@@ -158,15 +158,15 @@ const SmartNavbar = () => {
             {/* Mobile user info + logout */}
             {user && (
               <>
-                <div className="px-3 py-2 border-t border-gray-200 mt-2">
-                  <div className="text-sm font-medium text-gray-900">
+                <div className="px-3 py-2 border-t border-slate-200 mt-2">
+                  <div className="text-sm font-medium text-slate-900">
                     {user.userName}
                   </div>
-                  <div className="text-gray-500 text-xs">{role}</div>
+                  <div className="text-slate-500 text-xs">{role}</div>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:text-red-700 hover:bg-gray-50"
+                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:text-red-700 hover:bg-slate-50"
                 >
                   Logout
                 </button>

@@ -30,6 +30,8 @@ User = get_user_model()
 # ---------------------------------------------------------------------------
 
 DEALER_STUB = {"id": 1, "full_name": "Test Dealer", "city": "Testville", "state": "TX"}
+MOCK_DEALERS = [DEALER_STUB]
+MOCK_DEALER = [DEALER_STUB]
 REVIEW_STUB = {"id": 1, "dealership": 1, "review": "Great!", "author_id": None, "author_username": None}
 UPDATE_OK = {"id": 1, "full_name": "Updated"}
 
@@ -182,7 +184,8 @@ class CreateDealerAdminTests(RbacTestBase):
             **headers,
         )
 
-    def test_admin_can_create_dealer_admin(self):
+    @patch("djangoapp.views.get_request", return_value=MOCK_DEALER)
+    def test_admin_can_create_dealer_admin(self, _mock):
         resp = self._post(self.admin, {
             "userName": "new_dealer_admin",
             "password": "Pass1!",
@@ -193,7 +196,8 @@ class CreateDealerAdminTests(RbacTestBase):
         self.assertEqual(data["user"]["role"], User.Roles.DEALER_ADMIN)
         self.assertEqual(data["user"]["assignedDealerId"], 5)
 
-    def test_superuser_can_create_dealer_admin(self):
+    @patch("djangoapp.views.get_request", return_value=MOCK_DEALER)
+    def test_superuser_can_create_dealer_admin(self, _mock):
         resp = self._post(self.superuser, {
             "userName": "another_dealer_admin",
             "password": "Pass1!",
@@ -237,7 +241,8 @@ class CreateDealerAdminTests(RbacTestBase):
         })
         self.assertEqual(resp.status_code, 400)
 
-    def test_duplicate_username_returns_409(self):
+    @patch("djangoapp.views.get_request", return_value=MOCK_DEALER)
+    def test_duplicate_username_returns_409(self, _mock):
         resp = self._post(self.admin, {
             "userName": "customer_user",
             "password": "Pass1!",
@@ -245,14 +250,20 @@ class CreateDealerAdminTests(RbacTestBase):
         })
         self.assertEqual(resp.status_code, 409)
 
+    @patch("djangoapp.views.get_request", return_value=[])
+    def test_unknown_assigned_dealer_returns_404(self, _mock):
+        resp = self._post(self.admin, {
+            "userName": "orphan_dealer_admin",
+            "password": "Pass1!",
+            "assignedDealerId": 99999,
+        })
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(resp.json()["error"]["code"], "DEALER_NOT_FOUND")
+
 
 # ---------------------------------------------------------------------------
 # 3.  Dealership read (anonymous allowed)
 # ---------------------------------------------------------------------------
-
-MOCK_DEALERS = [DEALER_STUB]
-MOCK_DEALER = [DEALER_STUB]
-
 
 class DealershipReadTests(RbacTestBase):
 
@@ -325,6 +336,36 @@ class ReviewReadTests(RbacTestBase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json()["reviews"][0]["sentiment"], "neutral")
         self.assertTrue(resp.json()["reviews"][0].get("sentiment_error"))
+
+
+# ---------------------------------------------------------------------------
+# 4b.  Customer "My Reviews" endpoint
+# ---------------------------------------------------------------------------
+
+class MyReviewsTests(RbacTestBase):
+
+    @patch("djangoapp.views.analyze_review_sentiments", return_value={"sentiment": "positive"})
+    @patch("djangoapp.views.get_request")
+    def test_customer_can_fetch_only_own_reviews(self, mock_get, _sentiment):
+        mock_get.side_effect = [
+            [{"id": 1, "full_name": "Dealer One"}],  # /fetchDealers
+            [  # /fetchReviews/dealer/1
+                {"id": 101, "dealership": 1, "review": "Mine", "author_id": self.customer.id},
+                {"id": 102, "dealership": 1, "review": "Not mine", "author_id": self.admin.id},
+            ],
+        ]
+
+        resp = self.client.get("/djangoapp/reviews/me", **auth_header(self.customer))
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertEqual(body["status"], 200)
+        self.assertEqual(len(body["reviews"]), 1)
+        self.assertEqual(body["reviews"][0]["id"], 101)
+        self.assertEqual(body["reviews"][0]["dealerName"], "Dealer One")
+
+    def test_anonymous_cannot_fetch_my_reviews(self):
+        resp = self.client.get("/djangoapp/reviews/me")
+        self.assertEqual(resp.status_code, 401)
 
 
 # ---------------------------------------------------------------------------

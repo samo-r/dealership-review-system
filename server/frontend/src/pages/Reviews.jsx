@@ -75,22 +75,25 @@ const Reviews = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="w-full">
       {/* Header */}
-      <section className="bg-white border-b border-gray-200 py-8">
+      <section className="bg-white border-b border-slate-200 py-8">
         <div className="max-w-6xl mx-auto px-4">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-primary mb-2">
+            Autocars UG
+          </p>
+          <h1 className="text-4xl font-bold text-slate-900 mb-2">
             Customer Reviews
           </h1>
-          <p className="text-gray-600">
+          <p className="text-slate-600">
             Transparent feedback from real customers about their dealership
-            experience.
+            experience on Autocars UG.
           </p>
         </div>
       </section>
 
       {/* Filters */}
-      <section className="bg-white border-b border-gray-200 py-4 sticky top-0 z-10">
+      <section className="bg-white border-b border-slate-200 py-4 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-wrap gap-2">
             {[
@@ -105,7 +108,7 @@ const Reviews = () => {
                 className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
                   selectedSentiment === filter.id
                     ? "bg-brand-primary text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-slate-200 text-slate-700 hover:bg-slate-300"
                 }`}
               >
                 {filter.icon} {filter.label} ({sentimentCounts[filter.id]})
@@ -120,14 +123,14 @@ const Reviews = () => {
         <div className="max-w-6xl mx-auto px-4">
           {loading ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">Loading reviews...</p>
+              <p className="text-slate-500">Loading reviews...</p>
             </div>
           ) : filteredReviews.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredReviews.map((review) => (
                 <div key={review.id} className="flex flex-col">
                   <ReviewCard review={review} />
-                  <p className="text-xs text-gray-500 mt-2 px-1">
+                  <p className="text-xs text-slate-500 mt-2 px-1">
                     @ <strong>{review.dealerName}</strong>
                   </p>
                 </div>
@@ -135,7 +138,7 @@ const Reviews = () => {
             </div>
           ) : (
             <div className="text-center py-12 bg-white rounded-lg">
-              <p className="text-gray-600 text-lg">
+              <p className="text-slate-600 text-lg">
                 No reviews found for the selected filter.
               </p>
               <button
@@ -165,12 +168,6 @@ const Reviews = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-8">
-        <div className="max-w-6xl mx-auto px-4 text-center">
-          <p>&copy; 2026 Dealership Marketplace. All rights reserved.</p>
-        </div>
-      </footer>
     </div>
   );
 };

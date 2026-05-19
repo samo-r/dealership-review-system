@@ -8,9 +8,16 @@ import SmartNavbar from "../components/common/SmartNavbar";
  */
 const PublicLayout = () => {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <SmartNavbar />
-      <Outlet />
+      <main className="flex-1">
+        <Outlet />
+      </main>
+      <footer className="bg-slate-900 text-slate-400 py-6 mt-auto">
+        <div className="max-w-6xl mx-auto px-4 text-center text-sm">
+          © 2026 Autocars UG. Built for trusted dealership reviews.
+        </div>
+      </footer>
     </div>
   );
 };

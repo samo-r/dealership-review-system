@@ -6,7 +6,7 @@ import { useAuth } from "../../context/AuthContext";
  * DEALER_ADMIN can only edit their own assigned dealership
  */
 const DealerProfile = () => {
-  const { user } = useAuth();
+  const { user, authHeaders } = useAuth();
   const dealerId = user?.assignedDealerId;
 
   const [dealership, setDealership] = useState(null);
@@ -108,7 +108,7 @@ const DealerProfile = () => {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+            ...authHeaders(),
           },
           body: JSON.stringify(formData),
         }
@@ -141,7 +141,7 @@ const DealerProfile = () => {
   if (loading) {
     return (
       <div className="p-8 text-center">
-        <p className="text-gray-500">Loading profile...</p>
+        <p className="text-slate-500">Loading profile...</p>
       </div>
     );
   }
@@ -160,8 +160,8 @@ const DealerProfile = () => {
     <div className="max-w-2xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Dealership Profile</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-3xl font-bold text-slate-900">Dealership Profile</h1>
+        <p className="text-slate-600 mt-1">
           Manage your dealership information.
         </p>
       </div>
@@ -187,7 +187,7 @@ const DealerProfile = () => {
       >
         {/* Full Name */}
         <div>
-          <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="full_name" className="block text-sm font-medium text-slate-700 mb-2">
             Full Name *
           </label>
           <input
@@ -197,7 +197,7 @@ const DealerProfile = () => {
             value={formData.full_name}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary transition-colors ${
-              errors.full_name ? "border-red-500" : "border-gray-300"
+              errors.full_name ? "border-red-500" : "border-slate-300"
             }`}
             placeholder="e.g., Downtown Auto Sales"
           />
@@ -208,7 +208,7 @@ const DealerProfile = () => {
 
         {/* Short Name */}
         <div>
-          <label htmlFor="short_name" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="short_name" className="block text-sm font-medium text-slate-700 mb-2">
             Short Name *
           </label>
           <input
@@ -218,7 +218,7 @@ const DealerProfile = () => {
             value={formData.short_name}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary transition-colors ${
-              errors.short_name ? "border-red-500" : "border-gray-300"
+              errors.short_name ? "border-red-500" : "border-slate-300"
             }`}
             placeholder="e.g., Downtown Auto"
           />
@@ -229,7 +229,7 @@ const DealerProfile = () => {
 
         {/* Address */}
         <div>
-          <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="address" className="block text-sm font-medium text-slate-700 mb-2">
             Street Address *
           </label>
           <input
@@ -239,7 +239,7 @@ const DealerProfile = () => {
             value={formData.address}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary transition-colors ${
-              errors.address ? "border-red-500" : "border-gray-300"
+              errors.address ? "border-red-500" : "border-slate-300"
             }`}
             placeholder="e.g., 123 Main Street"
           />
@@ -252,7 +252,7 @@ const DealerProfile = () => {
         <div className="grid grid-cols-3 gap-4">
           {/* City */}
           <div>
-            <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="city" className="block text-sm font-medium text-slate-700 mb-2">
               City *
             </label>
             <input
@@ -262,7 +262,7 @@ const DealerProfile = () => {
               value={formData.city}
               onChange={handleChange}
               className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary transition-colors ${
-                errors.city ? "border-red-500" : "border-gray-300"
+                errors.city ? "border-red-500" : "border-slate-300"
               }`}
               placeholder="e.g., Austin"
             />
@@ -273,7 +273,7 @@ const DealerProfile = () => {
 
           {/* State */}
           <div>
-            <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="state" className="block text-sm font-medium text-slate-700 mb-2">
               State *
             </label>
             <input
@@ -284,7 +284,7 @@ const DealerProfile = () => {
               onChange={handleChange}
               maxLength="2"
               className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary transition-colors uppercase ${
-                errors.state ? "border-red-500" : "border-gray-300"
+                errors.state ? "border-red-500" : "border-slate-300"
               }`}
               placeholder="e.g., TX"
             />
@@ -295,7 +295,7 @@ const DealerProfile = () => {
 
           {/* ZIP */}
           <div>
-            <label htmlFor="zip" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="zip" className="block text-sm font-medium text-slate-700 mb-2">
               ZIP Code *
             </label>
             <input
@@ -305,7 +305,7 @@ const DealerProfile = () => {
               value={formData.zip}
               onChange={handleChange}
               className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary transition-colors ${
-                errors.zip ? "border-red-500" : "border-gray-300"
+                errors.zip ? "border-red-500" : "border-slate-300"
               }`}
               placeholder="e.g., 78701"
             />

@@ -228,8 +228,7 @@ MEDIA_URL = "/media/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 STATICFILES_DIRS = [
-    FRONTEND_STATIC_DIR,
-    FRONTEND_BUILD_STATIC_DIR,
+    path for path in [FRONTEND_STATIC_DIR, FRONTEND_BUILD_STATIC_DIR] if os.path.isdir(path)
 ]
 
 # This section fixes the proxy issue in the browser

@@ -1,152 +1,177 @@
 import React, { useState } from "react";
-import "./Register.css";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import user_icon from "../assets/person.png";
-import email_icon from "../assets/email.png";
-import password_icon from "../assets/password.png";
-import close_icon from "../assets/close.png";
+import {
+  getPostLoginPath,
+  getRedirectFromLocation,
+} from "../../utils/authRedirect";
 
 const Register = () => {
-  // State variables for form inputs
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
-  const [lastName, setlastName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const { login } = useAuth();
+  const { login, role, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = getRedirectFromLocation(location);
 
-  // Redirect to home
-  const gohome = () => {
-    window.location.href = window.location.origin;
-  };
-
-  // Handle form submission
-  const register = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
 
-    let register_url = window.location.origin + "/djangoapp/register/";
+    const trimmedUser = userName.trim();
+    if (!trimmedUser || !password || !email.trim() || !firstName.trim() || !lastName.trim()) {
+      alert("Please complete all required fields.");
+      return;
+    }
 
-    // Send POST request to register endpoint
-    const res = await fetch(register_url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        userName: userName,
-        password: password,
-        firstName: firstName,
-        lastName: lastName,
-        email: email,
-      }),
-    });
+    setSubmitting(true);
+    try {
+      const res = await fetch("/djangoapp/register/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userName: trimmedUser,
+          password,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim(),
+        }),
+      });
 
-    const json = await res.json();
-    const tokens = json.tokens;
-    if (res.ok && tokens?.access) {
-      login({ access: tokens.access, refresh: tokens.refresh, user: json.user });
-      window.location.href = window.location.origin;
-    } else {
-      const msg = json.error?.message || "Registration failed.";
-      alert(msg);
+      let json = {};
+      try {
+        json = await res.json();
+      } catch {
+        alert("Invalid response from server.");
+        return;
+      }
+
+      const tokens = json.tokens;
+      const profile = json.user;
+
+      if (!res.ok || !tokens?.access || !profile?.userName || !profile?.role) {
+        alert(json.error?.message || "Registration failed.");
+        return;
+      }
+
+      const stored = login({
+        access: tokens.access,
+        refresh: tokens.refresh,
+        user: profile,
+      });
+
+      if (!stored) {
+        alert("Account created, but session could not be saved. Please sign in.");
+        return;
+      }
+
+      navigate(getPostLoginPath(profile.role, redirectTo), { replace: true });
+    } catch (error) {
+      console.error("Registration failed:", error);
+      alert("Unable to register at this time. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  if (isAuthenticated) {
+    return <Navigate to={getPostLoginPath(role, redirectTo)} replace />;
+  }
+
   return (
-    <div className="register_container" style={{ width: "50%" }}>
-      <div
-        className="header"
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "space-between",
-        }}
-      >
-        <span className="text" style={{ flexGrow: "1" }}>
-          SignUp
-        </span>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifySelf: "end",
-            alignSelf: "start",
-          }}
-        >
-          <a
-            href="/"
-            onClick={() => {
-              gohome();
-            }}
-            style={{ justifyContent: "space-between", alignItems: "flex-end" }}
-          >
-            <img style={{ width: "1cm" }} src={close_icon} alt="X" />
-          </a>
+    <div className="w-full py-16">
+      <div className="mx-auto w-full max-w-2xl rounded-3xl border border-slate-200 bg-white px-8 py-10 shadow-lg">
+        <div className="mb-8 text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-primary">
+            Create your account
+          </p>
+          <h1 className="mt-3 text-3xl font-semibold text-slate-900">Register for Autocars UG</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Register to leave reviews, manage dealership listings, and access your dashboard.
+          </p>
         </div>
-        <hr />
-      </div>
 
-      <form onSubmit={register}>
-        <div className="inputs">
-          <div className="input">
-            <img src={user_icon} className="img_icon" alt="Username" />
+        <form className="space-y-6" onSubmit={handleRegister}>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">First name</label>
+              <input
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                type="text"
+                placeholder="First name"
+                className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">Last name</label>
+              <input
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                type="text"
+                placeholder="Last name"
+                className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Username</label>
             <input
-              type="text"
-              name="username"
-              placeholder="Username"
-              className="input_field"
+              value={userName}
               onChange={(e) => setUserName(e.target.value)}
-            />
-          </div>
-          <div>
-            <img src={user_icon} className="img_icon" alt="First Name" />
-            <input
               type="text"
-              name="first_name"
-              placeholder="First Name"
-              className="input_field"
-              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="Username"
+              className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
             />
           </div>
 
           <div>
-            <img src={user_icon} className="img_icon" alt="Last Name" />
+            <label className="mb-2 block text-sm font-medium text-slate-700">Email</label>
             <input
-              type="text"
-              name="last_name"
-              placeholder="Last Name"
-              className="input_field"
-              onChange={(e) => setlastName(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <img src={email_icon} className="img_icon" alt="Email" />
-            <input
-              type="email"
-              name="email"
-              placeholder="email"
-              className="input_field"
+              value={email}
               onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              placeholder="Email address"
+              className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
             />
           </div>
 
-          <div className="input">
-            <img src={password_icon} className="img_icon" alt="password" />
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Password</label>
             <input
-              name="psw"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               type="password"
               placeholder="Password"
-              className="input_field"
-              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
             />
           </div>
-        </div>
-        <div className="submit_panel">
-          <input className="submit" type="submit" value="Register" />
-        </div>
-      </form>
+
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              {submitting ? "Registering..." : "Register"}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-900"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
