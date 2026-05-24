@@ -1,4 +1,3 @@
-# fullstack_developer_capstone
 # project URL: https://github.com/samo-r/xrwvm-fullstack_developer_capstone.git
 
 # python3 manage.py runserver output
