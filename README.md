@@ -1,4 +1,4 @@
-# project URL: https://github.com/samo-r/xrwvm-fullstack_developer_capstone.git
+# project URL: https://github.com/samo-r/dealership-review-system.git
 
 # python3 manage.py runserver output
 Watching for file changes with StatReloader
