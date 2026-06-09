@@ -48,6 +48,23 @@ const reviews = new Schema({
     type: String,
     default: null,
   },
+  sentiment: {
+    type: String,
+    default: null,
+  },
+  sentiment_status: {
+    type: String,
+    enum: ["pending", "completed", "failed"],
+    default: "pending",
+  },
+  sentiment_analyzed_at: {
+    type: Date,
+    default: null,
+  },
+  sentiment_error: {
+    type: String,
+    default: null,
+  },
 });
 
 module.exports = mongoose.model("reviews", reviews);

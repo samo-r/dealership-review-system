@@ -8,7 +8,20 @@ import json
 import jwt
 from django.views.decorators.csrf import csrf_exempt
 from .models import CarMake, CarModel
-from .restapis import get_request, analyze_review_sentiments, post_review, post_request, put_request, delete_request
+from .restapis import (
+    get_request,
+    post_review,
+    post_request,
+    put_request,
+    delete_request,
+    verify_chassis,
+)
+from .sentiment_events import publish_review_sentiment_event
+from .sentiment_logging import (
+    log_reviews_batch_summary,
+    log_sentiment_pending,
+    log_sentiment_queue_skipped,
+)
 from .populate import initiate
 
 User = get_user_model()
@@ -417,6 +430,74 @@ def create_dealer_admin(request):
     )
 
 
+@csrf_exempt
+def create_dealership(request):
+    if request.method != "POST":
+        return api_error(405, "METHOD_NOT_ALLOWED", "Method Not Allowed")
+
+    _, error_response = require_capability(request, "dealership.create")
+    if error_response is not None:
+        return error_response
+
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return api_error(400, "INVALID_JSON", "Invalid JSON body")
+
+    name = (data.get("name") or "").strip()
+    location = (data.get("location") or "").strip()
+    contact_number = (data.get("contactNumber") or data.get("contact_number") or "").strip()
+    email = (data.get("email") or "").strip()
+
+    if not name or not location or not contact_number or not email:
+        return api_error(
+            400,
+            "MISSING_FIELDS",
+            "name, location, contactNumber, and email are required",
+        )
+
+    payload = {
+        "name": name,
+        "location": location,
+        "contact_number": contact_number,
+        "email": email,
+    }
+
+    result = post_request("/insertDealer", payload)
+    if is_upstream_error(result):
+        return upstream_error_response(result)
+
+    dealership = result.get("dealership") if isinstance(result, dict) else None
+    dealership_id = result.get("dealership_id") if isinstance(result, dict) else None
+    if dealership_id is None and isinstance(dealership, dict):
+        dealership_id = dealership.get("id")
+
+    return JsonResponse(
+        {
+            "status": 201,
+            "message": "Dealership created",
+            "dealership": dealership,
+            "dealership_id": dealership_id,
+        },
+        status=201,
+    )
+
+
+def list_platform_users(request):
+    if request.method != "GET":
+        return api_error(405, "METHOD_NOT_ALLOWED", "Method Not Allowed")
+
+    _, error_response = require_admin_user(request)
+    if error_response is not None:
+        return error_response
+
+    users = [
+        build_user_profile(user)
+        for user in User.objects.all().order_by("id")
+    ]
+    return JsonResponse({"status": 200, "users": users})
+
+
 # Fetch dealerships from API view
 def get_dealerships(request, state="All"):
     _, error_response = allow_read_capability(request, "dealership.read")
@@ -461,13 +542,7 @@ def get_dealer_reviews(request, dealer_id):
         reviews = get_request(endpoint)
         if is_upstream_error(reviews):
             return upstream_error_response(reviews)
-        for review_detail in reviews:
-            response = analyze_review_sentiments(review_detail["review"])
-            if is_upstream_error(response):
-                review_detail["sentiment"] = "neutral"
-                review_detail["sentiment_error"] = True
-            else:
-                review_detail["sentiment"] = response.get("sentiment", "neutral")
+        log_reviews_batch_summary(reviews, f"GET reviews/dealer/{dealer_id}")
         return JsonResponse({"status": 200, "reviews": reviews})
     else:
         return api_error(400, "MISSING_DEALER_ID", "dealer_id is required")
@@ -518,18 +593,12 @@ def get_my_reviews(request):
                 continue
             seen_ids.add(dedupe_key)
 
-            response = analyze_review_sentiments(review_detail.get("review", ""))
-            if is_upstream_error(response):
-                review_detail["sentiment"] = "neutral"
-                review_detail["sentiment_error"] = True
-            else:
-                review_detail["sentiment"] = response.get("sentiment", "neutral")
-
             dealer_id_value = review_detail.get("dealership")
             review_detail["dealerName"] = dealer_name_by_id.get(str(dealer_id_value), "")
             all_reviews.append(review_detail)
 
     all_reviews.sort(key=lambda item: item.get("created_at", ""), reverse=True)
+    log_reviews_batch_summary(all_reviews, "GET reviews/me")
     return JsonResponse({"status": 200, "reviews": all_reviews})
 
 
@@ -562,7 +631,18 @@ def update_dealership(request, dealer_id):
 
     # Strip fields that are not part of the dealership schema to avoid
     # accidental overwrites of id or other non-updatable fields.
-    UPDATABLE_FIELDS = {"city", "state", "address", "zip", "lat", "long", "short_name", "full_name"}
+    UPDATABLE_FIELDS = {
+        "city",
+        "state",
+        "address",
+        "zip",
+        "lat",
+        "long",
+        "short_name",
+        "full_name",
+        "contact_number",
+        "email",
+    }
     payload = {k: v for k, v in data.items() if k in UPDATABLE_FIELDS}
 
     if not payload:
@@ -589,6 +669,33 @@ def add_review(request):
     except json.JSONDecodeError:
         return api_error(400, "INVALID_JSON", "Invalid JSON body")
 
+    chassis_number = data.get("chassis_number")
+    if not chassis_number or not str(chassis_number).strip():
+        return api_error(
+            400,
+            "CHASSIS_REQUIRED",
+            "Chassis number is required to verify your purchase.",
+        )
+
+    dealership = data.get("dealership")
+    try:
+        dealer_id = int(dealership)
+    except (TypeError, ValueError):
+        return api_error(400, "INVALID_DEALERSHIP", "A valid dealership id is required.")
+
+    verification = verify_chassis(dealer_id, str(chassis_number).strip())
+    if is_upstream_error(verification):
+        return upstream_error_response(verification)
+
+    if not verification.get("verified"):
+        return api_error(
+            403,
+            "CHASSIS_VERIFICATION_FAILED",
+            "Invalid chassis number. We could not verify your purchase at this dealership.",
+        )
+
+    data.pop("chassis_number", None)
+
     # Stamp authorship so ownership checks work on edit/delete
     data["author_id"] = user.id
     data["author_username"] = user.username
@@ -596,7 +703,15 @@ def add_review(request):
     response = post_review(data)
     if is_upstream_error(response):
         return upstream_error_response(response)
-    return JsonResponse({"status": 200})
+
+    review_id = response.get("id") if isinstance(response, dict) else None
+    log_sentiment_pending(review_id, "review.created")
+
+    queued = publish_review_sentiment_event("review.created", review_id, data.get("review", ""))
+    if not queued:
+        log_sentiment_queue_skipped(review_id, "event not queued after create")
+
+    return JsonResponse({"status": 200, "review": response})
 
 
 # Update an existing review
@@ -641,7 +756,44 @@ def update_review(request, review_id):
     response = put_request("/updateReview/" + str(review_id), payload)
     if is_upstream_error(response):
         return upstream_error_response(response)
+
+    if "review" in payload:
+        log_sentiment_pending(review_id, "review.updated")
+        queued = publish_review_sentiment_event("review.updated", review_id, payload["review"])
+        if not queued:
+            log_sentiment_queue_skipped(review_id, "event not queued after update")
+
     return JsonResponse({"status": 200, "review": response})
+
+
+def normalize_inventory_payload(data):
+    """Map frontend field names to the Node/Mongo inventory schema."""
+    payload = {}
+
+    if data.get("dealer_id") is not None:
+        payload["dealer_id"] = data["dealer_id"]
+
+    make = data.get("make") or data.get("car_make")
+    model = data.get("model") or data.get("car_model")
+    year = data.get("year") if data.get("year") is not None else data.get("car_year")
+    body_type = data.get("bodyType")
+    mileage = data.get("mileage")
+    chassis_number = data.get("chassis_number")
+
+    if make is not None:
+        payload["make"] = str(make).strip()
+    if model is not None:
+        payload["model"] = str(model).strip()
+    if body_type is not None:
+        payload["bodyType"] = str(body_type).strip()
+    if year is not None and str(year).strip() != "":
+        payload["year"] = year
+    if mileage is not None and str(mileage).strip() != "":
+        payload["mileage"] = mileage
+    if chassis_number is not None and str(chassis_number).strip() != "":
+        payload["chassis_number"] = str(chassis_number).strip()
+
+    return payload
 
 
 # Inventory endpoints 
@@ -687,7 +839,8 @@ def add_inventory(request):
     if not has_capability(user, "inventory.update.any"):
         data["dealer_id"] = user.assigned_dealer_id
 
-    response = post_request("/addInventory", data)
+    payload = normalize_inventory_payload(data)
+    response = post_request("/addInventory", payload)
     if is_upstream_error(response):
         return upstream_error_response(response)
     return JsonResponse({"status": 201, "vehicle": response}, status=201)
@@ -723,7 +876,8 @@ def update_inventory(request, vehicle_id):
     except json.JSONDecodeError:
         return api_error(400, "INVALID_JSON", "Invalid JSON body")
 
-    response = put_request("/updateInventory/" + vehicle_id, data)
+    payload = normalize_inventory_payload(data)
+    response = put_request("/updateInventory/" + vehicle_id, payload)
     if is_upstream_error(response):
         return upstream_error_response(response)
     return JsonResponse({"status": 200, "vehicle": response})

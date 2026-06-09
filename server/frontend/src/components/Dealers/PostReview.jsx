@@ -12,19 +12,23 @@ const PostReview = () => {
   const [model, setModel] = useState("");
   const [year, setYear] = useState("");
   const [date, setDate] = useState("");
+  const [chassisNumber, setChassisNumber] = useState("");
   const [carModels, setCarModels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   const postReview = async () => {
     if (!token) {
       return navigate("/login", { replace: true });
     }
 
-    if (!model || !review || !date || !year) {
-      alert("All details are mandatory");
+    if (!model || !review || !date || !year || !chassisNumber.trim()) {
+      setError("All details are mandatory, including chassis verification.");
       return;
     }
+
+    setError(null);
 
     const [makeChosen, modelChosen] = model.split(" ");
     const payload = {
@@ -36,6 +40,7 @@ const PostReview = () => {
       car_make: makeChosen,
       car_model: modelChosen,
       car_year: year,
+      chassis_number: chassisNumber.trim(),
     };
 
     setSaving(true);
@@ -58,11 +63,11 @@ const PostReview = () => {
       if (res.ok) {
         navigate(`/dealer/${id}`);
       } else {
-        alert(data.error?.message || "Could not post review.");
+        setError(data.error?.message || "Could not post review.");
       }
-    } catch (error) {
-      console.error("Error posting review:", error);
-      alert("Unable to submit review right now.");
+    } catch (submitError) {
+      console.error("Error posting review:", submitError);
+      setError("Unable to submit review right now.");
     } finally {
       setSaving(false);
     }
@@ -113,6 +118,12 @@ const PostReview = () => {
         </div>
 
         <div className="space-y-6">
+          {error && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">Review</label>
             <textarea
@@ -147,6 +158,23 @@ const PostReview = () => {
                 placeholder="2024"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              Verify Purchase — Chassis Number *
+            </label>
+            <input
+              type="password"
+              value={chassisNumber}
+              onChange={(e) => setChassisNumber(e.target.value)}
+              autoComplete="off"
+              className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+              placeholder="Enter your vehicle chassis number"
+            />
+            <p className="mt-2 text-xs text-slate-500">
+              Your review is only saved after your purchase is verified against dealership inventory.
+            </p>
           </div>
 
           <div>

@@ -1,16 +1,9 @@
 import React, { useState } from "react";
 
+const BODY_TYPES = ["Sedan", "SUV", "Truck", "Coupe", "Hatchback", "Van", "Other"];
+
 /**
- * VehicleForm — add/edit vehicle in two modes:
- *   - Dealer Admin: fixedDealerId hides the dealer field
- *   - System Admin: selectable=true shows a dropdown of all dealerships
- *
- * Props:
- *   fixedDealerId?: number  — if provided, dealer field is locked and hidden
- *   dealerships?: array  — list of dealerships for admin dropdown
- *   vehicle?: object  — for edit mode; if absent, form is in "add" mode
- *   onSubmit: (vehicleData) => void  — called when form is submitted
- *   isLoading?: boolean  — disables submit button
+ * VehicleForm — add/edit vehicle in dealer or admin context.
  */
 const VehicleForm = ({
   fixedDealerId,
@@ -19,14 +12,16 @@ const VehicleForm = ({
   onSubmit,
   isLoading = false,
 }) => {
+  const isEdit = Boolean(vehicle);
+
   const [formData, setFormData] = useState({
     dealership: fixedDealerId || "",
-    car_make: "",
-    car_model: "",
-    car_year: new Date().getFullYear(),
-    price: "",
-    mileage: "",
-    ...vehicle,
+    make: vehicle?.make || "",
+    model: vehicle?.model || "",
+    year: vehicle?.year || new Date().getFullYear(),
+    bodyType: vehicle?.bodyType || "",
+    mileage: vehicle?.mileage ?? "",
+    chassis_number: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -34,7 +29,6 @@ const VehicleForm = ({
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error for this field
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
     }
@@ -43,14 +37,19 @@ const VehicleForm = ({
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.car_make.trim())
-      newErrors.car_make = "Car make is required.";
-    if (!formData.car_model.trim())
-      newErrors.car_model = "Car model is required.";
-    if (!formData.car_year)
-      newErrors.car_year = "Car year is required.";
-    if (!fixedDealerId && !formData.dealership)
+    if (!formData.make.trim()) newErrors.make = "Car make is required.";
+    if (!formData.model.trim()) newErrors.model = "Car model is required.";
+    if (!formData.year) newErrors.year = "Car year is required.";
+    if (!formData.bodyType.trim()) newErrors.bodyType = "Body type is required.";
+    if (formData.mileage === "" || Number(formData.mileage) < 0) {
+      newErrors.mileage = "Mileage is required and must be non-negative.";
+    }
+    if (!isEdit && !formData.chassis_number.trim()) {
+      newErrors.chassis_number = "Chassis number is required.";
+    }
+    if (!fixedDealerId && !formData.dealership) {
       newErrors.dealership = "Dealership is required.";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -60,14 +59,23 @@ const VehicleForm = ({
     e.preventDefault();
     if (!validate()) return;
 
-    onSubmit({
-      dealership: formData.dealership,
-      car_make: formData.car_make,
-      car_model: formData.car_model,
-      car_year: formData.car_year,
-      price: formData.price || null,
-      mileage: formData.mileage || null,
-    });
+    const payload = {
+      make: formData.make.trim(),
+      model: formData.model.trim(),
+      year: Number(formData.year),
+      bodyType: formData.bodyType.trim(),
+      mileage: Number(formData.mileage),
+    };
+
+    if (!fixedDealerId) {
+      payload.dealer_id = Number(formData.dealership);
+    }
+
+    if (formData.chassis_number.trim()) {
+      payload.chassis_number = formData.chassis_number.trim();
+    }
+
+    onSubmit(payload);
   };
 
   return (
@@ -76,10 +84,9 @@ const VehicleForm = ({
       className="bg-white rounded-lg shadow-md p-6 max-w-2xl"
     >
       <h2 className="text-xl font-bold text-slate-900 mb-6">
-        {vehicle ? "Edit Vehicle" : "Add Vehicle"}
+        {isEdit ? "Edit Vehicle" : "Add Vehicle"}
       </h2>
 
-      {/* Dealership field — hidden if fixedDealerId, dropdown if admin */}
       {!fixedDealerId && (
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -106,104 +113,134 @@ const VehicleForm = ({
         </div>
       )}
 
-      {/* Car make */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-slate-700 mb-1">
           Car Make *
         </label>
         <input
           type="text"
-          name="car_make"
+          name="make"
           placeholder="e.g., Toyota"
-          value={formData.car_make}
+          value={formData.make}
           onChange={handleChange}
           className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary ${
-            errors.car_make ? "border-red-500" : "border-slate-300"
+            errors.make ? "border-red-500" : "border-slate-300"
           }`}
         />
-        {errors.car_make && (
-          <p className="text-red-600 text-xs mt-1">{errors.car_make}</p>
+        {errors.make && (
+          <p className="text-red-600 text-xs mt-1">{errors.make}</p>
         )}
       </div>
 
-      {/* Car model */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-slate-700 mb-1">
           Car Model *
         </label>
         <input
           type="text"
-          name="car_model"
+          name="model"
           placeholder="e.g., Camry"
-          value={formData.car_model}
+          value={formData.model}
           onChange={handleChange}
           className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary ${
-            errors.car_model ? "border-red-500" : "border-slate-300"
+            errors.model ? "border-red-500" : "border-slate-300"
           }`}
         />
-        {errors.car_model && (
-          <p className="text-red-600 text-xs mt-1">{errors.car_model}</p>
+        {errors.model && (
+          <p className="text-red-600 text-xs mt-1">{errors.model}</p>
         )}
       </div>
 
-      {/* Car year */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-slate-700 mb-1">
+          Body Type *
+        </label>
+        <select
+          name="bodyType"
+          value={formData.bodyType}
+          onChange={handleChange}
+          className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary ${
+            errors.bodyType ? "border-red-500" : "border-slate-300"
+          }`}
+        >
+          <option value="">Select body type...</option>
+          {BODY_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+        {errors.bodyType && (
+          <p className="text-red-600 text-xs mt-1">{errors.bodyType}</p>
+        )}
+      </div>
+
       <div className="mb-4">
         <label className="block text-sm font-medium text-slate-700 mb-1">
           Car Year *
         </label>
         <input
           type="number"
-          name="car_year"
+          name="year"
           min="1900"
           max={new Date().getFullYear() + 1}
-          value={formData.car_year}
+          value={formData.year}
           onChange={handleChange}
           className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary ${
-            errors.car_year ? "border-red-500" : "border-slate-300"
+            errors.year ? "border-red-500" : "border-slate-300"
           }`}
         />
-        {errors.car_year && (
-          <p className="text-red-600 text-xs mt-1">{errors.car_year}</p>
+        {errors.year && (
+          <p className="text-red-600 text-xs mt-1">{errors.year}</p>
         )}
       </div>
 
-      {/* Price (optional) */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-slate-700 mb-1">
-          Price (optional)
-        </label>
-        <input
-          type="number"
-          name="price"
-          placeholder="e.g., 25000"
-          value={formData.price}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
-        />
-      </div>
-
-      {/* Mileage (optional) */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-slate-700 mb-1">
-          Mileage (optional)
+          Mileage *
         </label>
         <input
           type="number"
           name="mileage"
+          min="0"
           placeholder="e.g., 45000"
           value={formData.mileage}
           onChange={handleChange}
-          className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+          className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary ${
+            errors.mileage ? "border-red-500" : "border-slate-300"
+          }`}
         />
+        {errors.mileage && (
+          <p className="text-red-600 text-xs mt-1">{errors.mileage}</p>
+        )}
       </div>
 
-      {/* Submit button */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-slate-700 mb-1">
+          Chassis Number {isEdit ? "(optional)" : "*"}
+        </label>
+        <input
+          type="password"
+          name="chassis_number"
+          placeholder={isEdit ? "Leave blank to keep existing" : "Enter chassis number"}
+          value={formData.chassis_number}
+          onChange={handleChange}
+          autoComplete="off"
+          className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary ${
+            errors.chassis_number ? "border-red-500" : "border-slate-300"
+          }`}
+        />
+        {errors.chassis_number && (
+          <p className="text-red-600 text-xs mt-1">{errors.chassis_number}</p>
+        )}
+      </div>
+
       <button
         type="submit"
         disabled={isLoading}
         className="w-full px-4 py-2 bg-brand-primary text-white rounded-md font-medium hover:bg-brand-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {isLoading ? "Saving..." : vehicle ? "Update Vehicle" : "Add Vehicle"}
+        {isLoading ? "Saving..." : isEdit ? "Update Vehicle" : "Add Vehicle"}
       </button>
     </form>
   );

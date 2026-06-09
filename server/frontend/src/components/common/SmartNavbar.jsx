@@ -29,7 +29,7 @@ const SmartNavbar = () => {
 
   // Customer menu — can create reviews
   const customerMenu = [
-    { label: "Home", to: "/" },
+    { label: "Home", to: "/home" },
     { label: "Dealers", to: "/dealers" },
     { label: "Reviews", to: "/reviews" },
     { label: "My Reviews", to: "/customer/my-reviews" },

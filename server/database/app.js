@@ -1,6 +1,17 @@
 /* jshint esversion: 8, sub: true */
 const express = require("express");
-require("dotenv").config();
+const path = require("path");
+
+// In Docker, env vars come from Compose `environment` / `env_file` on the host.
+// dotenv only supplements local `npm start` when database/.env exists on disk.
+const dotenvResult = require("dotenv").config({
+  path: path.join(__dirname, ".env"),
+});
+if (dotenvResult.error && !process.env.PORT) {
+  console.warn(
+    "[bootstrap] No database/.env file found; relying on process environment variables.",
+  );
+}
 const mongoose = require("mongoose");
 const fs = require("fs");
 const cors = require("cors");
@@ -22,6 +33,10 @@ const DB_NAME = requireEnv("DB_NAME");
 const CORS_ORIGIN = requireEnv("CORS_ORIGIN");
 const SEED_ON_START =
   requireEnv("SEED_ON_START").toLowerCase() === "true";
+const INTERNAL_API_KEY = requireEnv("INTERNAL_API_KEY");
+
+const SENTIMENT_LABELS = new Set(["positive", "neutral", "negative"]);
+const SENTIMENT_STATUSES = new Set(["pending", "completed", "failed"]);
 
 // Configure Mongo connection timeouts and monitor connection lifecycle events.
 const MONGODB_OPTIONS = {
@@ -57,6 +72,13 @@ const dealerships_data = JSON.parse(
 const Reviews = require("./review");
 const Dealerships = require("./dealership");
 const Inventory = require("./inventory");
+const {
+  validateEncryptionKey,
+  encryptChassis,
+  verifyChassis,
+  isDuplicateChassis,
+  stripChassisFromVehicle,
+} = require("./utils/chassisEncryption");
 
 // Atomic ID generation for review inserts.
 const CounterSchema = new mongoose.Schema(
@@ -88,6 +110,73 @@ const syncReviewCounter = async () => {
   );
 
   console.log(`[bootstrap] Review ID counter synced to at least ${maxReviewId}`);
+};
+
+const getNextDealershipId = async () => {
+  const counter = await Counter.findOneAndUpdate(
+    { _id: "dealerships" },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true },
+  );
+  return counter.seq;
+};
+
+const syncDealershipCounter = async () => {
+  const maxDealer = await Dealerships.findOne().sort({ id: -1 }).select({ id: 1 });
+  const maxDealerId = maxDealer ? maxDealer.id : 0;
+
+  await Counter.updateOne(
+    { _id: "dealerships" },
+    { $max: { seq: maxDealerId } },
+    { upsert: true },
+  );
+
+  console.log(`[bootstrap] Dealership ID counter synced to at least ${maxDealerId}`);
+};
+
+const validateDealershipPayload = (data) => {
+  if (!data || typeof data !== "object") {
+    return { valid: false, message: "Request body must be a JSON object." };
+  }
+
+  const name = typeof data.name === "string" ? data.name.trim() : "";
+  const location = typeof data.location === "string" ? data.location.trim() : "";
+  const contactNumber =
+    typeof data.contact_number === "string" ? data.contact_number.trim() : "";
+  const email = typeof data.email === "string" ? data.email.trim() : "";
+
+  if (!name) {
+    return { valid: false, message: "Field 'name' is required." };
+  }
+  if (!location) {
+    return { valid: false, message: "Field 'location' is required." };
+  }
+  if (!contactNumber) {
+    return { valid: false, message: "Field 'contact_number' is required." };
+  }
+  if (!email) {
+    return { valid: false, message: "Field 'email' is required." };
+  }
+
+  const shortName = name.split(/\s+/).slice(0, 2).join(" ");
+
+  return {
+    valid: true,
+    dealership: {
+      name,
+      location,
+      contact_number: contactNumber,
+      email,
+      full_name: name,
+      short_name: shortName,
+      address: location,
+      city: location,
+      state: "Uganda",
+      zip: "00000",
+      lat: "0",
+      long: "0",
+    },
+  };
 };
 
 // Step 3.4: Validate and normalize incoming review payloads before DB writes.
@@ -145,6 +234,22 @@ const validateReviewPayload = (data) => {
     };
   }
 
+  let authorId = null;
+  if (data.author_id !== undefined && data.author_id !== null && data.author_id !== "") {
+    authorId = Number(data.author_id);
+    if (!Number.isInteger(authorId) || authorId <= 0) {
+      return {
+        valid: false,
+        message: "Field 'author_id' must be a positive integer when provided.",
+      };
+    }
+  }
+
+  let authorUsername = null;
+  if (typeof data.author_username === "string" && data.author_username.trim() !== "") {
+    authorUsername = data.author_username.trim();
+  }
+
   return {
     valid: true,
     normalized: {
@@ -156,8 +261,81 @@ const validateReviewPayload = (data) => {
       car_make: data.car_make.trim(),
       car_model: data.car_model.trim(),
       car_year: carYear,
+      author_id: authorId,
+      author_username: authorUsername,
     },
   };
+};
+
+const requireInternalApiKey = (req, res, next) => {
+  const providedKey = req.headers["x-internal-api-key"];
+  if (!providedKey || providedKey !== INTERNAL_API_KEY) {
+    return sendError(res, 403, "FORBIDDEN", "Invalid or missing internal API key.");
+  }
+  return next();
+};
+
+const validateSentimentPatchPayload = (data) => {
+  if (!data || typeof data !== "object") {
+    return { valid: false, message: "Request body must be a JSON object." };
+  }
+
+  const updates = {};
+
+  if (data.sentiment_status !== undefined) {
+    if (!SENTIMENT_STATUSES.has(data.sentiment_status)) {
+      return {
+        valid: false,
+        message: "Field 'sentiment_status' must be pending, completed, or failed.",
+      };
+    }
+    updates.sentiment_status = data.sentiment_status;
+  }
+
+  if (data.sentiment !== undefined) {
+    if (data.sentiment !== null && !SENTIMENT_LABELS.has(data.sentiment)) {
+      return {
+        valid: false,
+        message: "Field 'sentiment' must be positive, neutral, negative, or null.",
+      };
+    }
+    updates.sentiment = data.sentiment;
+  }
+
+  if (data.sentiment_analyzed_at !== undefined) {
+    if (data.sentiment_analyzed_at !== null) {
+      const parsed = new Date(data.sentiment_analyzed_at);
+      if (Number.isNaN(parsed.getTime())) {
+        return {
+          valid: false,
+          message: "Field 'sentiment_analyzed_at' must be a valid ISO date or null.",
+        };
+      }
+      updates.sentiment_analyzed_at = parsed;
+    } else {
+      updates.sentiment_analyzed_at = null;
+    }
+  }
+
+  if (data.sentiment_error !== undefined) {
+    if (data.sentiment_error !== null && typeof data.sentiment_error !== "string") {
+      return {
+        valid: false,
+        message: "Field 'sentiment_error' must be a string or null.",
+      };
+    }
+    updates.sentiment_error =
+      typeof data.sentiment_error === "string" ? data.sentiment_error.trim() : null;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return {
+      valid: false,
+      message: "At least one sentiment field must be provided.",
+    };
+  }
+
+  return { valid: true, updates };
 };
 
 // Standard error response shape for all API failures.
@@ -380,6 +558,35 @@ app.get("/fetchDealer/:id", async (req, res) => {
   }
 });
 
+// POST /insertDealer — register a new dealership (admin onboarding)
+app.post("/insertDealer", async (req, res) => {
+  const validation = validateDealershipPayload(req.body);
+  if (!validation.valid) {
+    return sendError(res, 400, "INVALID_DEALERSHIP", validation.message);
+  }
+
+  try {
+    const nextId = await getNextDealershipId();
+    const payload = {
+      id: nextId,
+      ...validation.dealership,
+    };
+
+    const created = await Dealerships.create(payload);
+    return res.status(201).json({
+      status: 201,
+      message: "Dealership created.",
+      dealership: created,
+      dealership_id: created.id,
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return sendError(res, 409, "DUPLICATE_DEALERSHIP_ID", "Dealership id conflict.");
+    }
+    return sendError(res, 500, "INSERT_DEALER_FAILED", "Failed to create dealership.");
+  }
+});
+
 // Express route to update a dealership by id
 app.put("/updateDealer/:id", async (req, res) => {
   const dealerId = Number(req.params.id);
@@ -393,7 +600,16 @@ app.put("/updateDealer/:id", async (req, res) => {
   }
 
   const allowedFields = [
-    "city", "state", "address", "zip", "lat", "long", "short_name", "full_name",
+    "city",
+    "state",
+    "address",
+    "zip",
+    "lat",
+    "long",
+    "short_name",
+    "full_name",
+    "contact_number",
+    "email",
   ];
   const updates = {};
   for (const field of allowedFields) {
@@ -466,10 +682,19 @@ app.post("/insert_review", async (req, res) => {
     car_make: data.car_make,
     car_model: data.car_model,
     car_year: data.car_year,
+    author_id: data.author_id,
+    author_username: data.author_username,
+    sentiment: null,
+    sentiment_status: "pending",
+    sentiment_analyzed_at: null,
+    sentiment_error: null,
   });
 
   try {
     const savedReview = await review.save();
+    console.log(
+      `[sentiment] review_id=${savedReview.id} status=PENDING (insert_review)`,
+    );
     return res.status(201).json(savedReview);
   } catch (error) {
     if (error && error.code === 11000) {
@@ -527,6 +752,16 @@ app.put("/updateReview/:id", async (req, res) => {
     return sendError(res, 400, "NO_UPDATE_FIELDS", "At least one updatable field must be provided.");
   }
 
+  if (updates.review !== undefined) {
+    updates.sentiment = null;
+    updates.sentiment_status = "pending";
+    updates.sentiment_analyzed_at = null;
+    updates.sentiment_error = null;
+    console.log(
+      `[sentiment] review_id=${reviewId} status=PENDING (review text updated)`,
+    );
+  }
+
   try {
     const updated = await Reviews.findOneAndUpdate(
       { id: reviewId },
@@ -539,6 +774,49 @@ app.put("/updateReview/:id", async (req, res) => {
     return res.json(updated);
   } catch (error) {
     return sendError(res, 500, "UPDATE_REVIEW_FAILED", "Failed to update review.");
+  }
+});
+
+// Internal route for sentiment worker to persist analysis results
+app.patch("/updateReview/:id/sentiment", requireInternalApiKey, async (req, res) => {
+  const reviewId = Number(req.params.id);
+  if (!Number.isInteger(reviewId) || reviewId <= 0) {
+    return sendError(res, 400, "INVALID_REVIEW_ID", "Review id must be a positive integer.");
+  }
+
+  const validation = validateSentimentPatchPayload(req.body);
+  if (!validation.valid) {
+    return sendError(res, 400, "INVALID_SENTIMENT_PAYLOAD", validation.message);
+  }
+
+  try {
+    const updated = await Reviews.findOneAndUpdate(
+      { id: reviewId },
+      { $set: validation.updates },
+      { new: true, runValidators: true },
+    );
+    if (!updated) {
+      return sendError(res, 404, "REVIEW_NOT_FOUND", "Review not found.");
+    }
+
+    const nextStatus = validation.updates.sentiment_status;
+    if (nextStatus === "completed") {
+      console.log(
+        `[sentiment] review_id=${reviewId} status=COMPLETED label=${validation.updates.sentiment} (patch)`,
+      );
+    } else if (nextStatus === "failed") {
+      console.warn(
+        `[sentiment] review_id=${reviewId} status=FAILED (patch) ${validation.updates.sentiment_error || ""}`,
+      );
+    } else if (nextStatus === "pending") {
+      console.log(
+        `[sentiment] review_id=${reviewId} status=PENDING (patch)`,
+      );
+    }
+
+    return res.json(updated);
+  } catch (error) {
+    return sendError(res, 500, "UPDATE_SENTIMENT_FAILED", "Failed to update review sentiment.");
   }
 });
 
@@ -608,6 +886,17 @@ const validateInventoryPayload = (data, requireAll = true) => {
     }
   }
 
+  if (requireAll || data.chassis_number !== undefined) {
+    if (
+      typeof data.chassis_number !== "string" ||
+      data.chassis_number.trim() === ""
+    ) {
+      errors.push(
+        "Field 'chassis_number' is required and must be a non-empty string.",
+      );
+    }
+  }
+
   if (errors.length > 0) {
     return { valid: false, message: errors[0] };
   }
@@ -624,9 +913,40 @@ app.get("/fetchInventory/dealer/:id", async (req, res) => {
 
   try {
     const vehicles = await Inventory.find({ dealer_id: dealerId });
-    return res.json(vehicles);
+    return res.json(vehicles.map(stripChassisFromVehicle));
   } catch (error) {
     return sendError(res, 500, "FETCH_INVENTORY_FAILED", "Failed to fetch inventory.");
+  }
+});
+
+// POST /internal/verify-chassis — decrypt inventory and verify customer input
+app.post("/internal/verify-chassis", requireInternalApiKey, async (req, res) => {
+  const dealerId = Number(req.body?.dealer_id);
+  const chassisNumber = req.body?.chassis_number;
+
+  if (!Number.isInteger(dealerId) || dealerId <= 0) {
+    return sendError(res, 400, "INVALID_DEALER_ID", "Dealer id must be a positive integer.");
+  }
+
+  if (typeof chassisNumber !== "string" || chassisNumber.trim() === "") {
+    return sendError(
+      res,
+      400,
+      "CHASSIS_REQUIRED",
+      "Chassis number is required to verify purchase.",
+    );
+  }
+
+  try {
+    const result = await verifyChassis(chassisNumber, dealerId, Inventory);
+    return res.json({ verified: result.verified === true });
+  } catch (error) {
+    return sendError(
+      res,
+      500,
+      "CHASSIS_VERIFICATION_FAILED",
+      "Failed to verify chassis number.",
+    );
   }
 });
 
@@ -642,18 +962,36 @@ app.post("/addInventory", async (req, res) => {
     return sendError(res, 404, "DEALERSHIP_NOT_FOUND", "Cannot add inventory for a dealership that does not exist.");
   }
 
+  const dealerId = Number(req.body.dealer_id);
+
   try {
+    const duplicate = await isDuplicateChassis(
+      req.body.chassis_number,
+      dealerId,
+      Inventory,
+    );
+    if (duplicate) {
+      return sendError(
+        res,
+        409,
+        "DUPLICATE_CHASSIS",
+        "A vehicle with this chassis number already exists for this dealership.",
+      );
+    }
+
+    const encryptedChassis = encryptChassis(req.body.chassis_number);
     const vehicle = new Inventory({
-      dealer_id: Number(req.body.dealer_id),
+      dealer_id: dealerId,
       make: req.body.make.trim(),
       model: req.body.model.trim(),
       bodyType: req.body.bodyType.trim(),
       year: Number(req.body.year),
       mileage: Number(req.body.mileage),
+      chassis_number: encryptedChassis,
     });
 
     const saved = await vehicle.save();
-    return res.status(201).json(saved);
+    return res.status(201).json(stripChassisFromVehicle(saved));
   } catch (error) {
     return sendError(res, 500, "ADD_INVENTORY_FAILED", "Failed to add inventory item.");
   }
@@ -679,11 +1017,48 @@ app.put("/updateInventory/:id", async (req, res) => {
     }
   }
 
+  if (req.body.chassis_number !== undefined) {
+    if (
+      typeof req.body.chassis_number !== "string" ||
+      req.body.chassis_number.trim() === ""
+    ) {
+      return sendError(
+        res,
+        400,
+        "INVALID_CHASSIS",
+        "Field 'chassis_number' must be a non-empty string when provided.",
+      );
+    }
+    updates.chassis_number = encryptChassis(req.body.chassis_number);
+  }
+
   if (Object.keys(updates).length === 0) {
     return sendError(res, 400, "NO_UPDATE_FIELDS", "At least one updatable field must be provided.");
   }
 
   try {
+    if (req.body.chassis_number !== undefined) {
+      const existingVehicle = await Inventory.findById(vehicleId);
+      if (!existingVehicle) {
+        return sendError(res, 404, "VEHICLE_NOT_FOUND", "Vehicle not found.");
+      }
+
+      const duplicate = await isDuplicateChassis(
+        req.body.chassis_number,
+        existingVehicle.dealer_id,
+        Inventory,
+        vehicleId,
+      );
+      if (duplicate) {
+        return sendError(
+          res,
+          409,
+          "DUPLICATE_CHASSIS",
+          "A vehicle with this chassis number already exists for this dealership.",
+        );
+      }
+    }
+
     const updated = await Inventory.findByIdAndUpdate(
       vehicleId,
       { $set: updates },
@@ -692,7 +1067,7 @@ app.put("/updateInventory/:id", async (req, res) => {
     if (!updated) {
       return sendError(res, 404, "VEHICLE_NOT_FOUND", "Vehicle not found.");
     }
-    return res.json(updated);
+    return res.json(stripChassisFromVehicle(updated));
   } catch (error) {
     if (error.name === "CastError") {
       return sendError(res, 400, "INVALID_VEHICLE_ID", "Invalid vehicle id format.");
@@ -732,6 +1107,8 @@ const startServer = async () => {
     // Deterministic startup order: connect DB -> optional seed -> start HTTP listener.
     await mongoose.connect(MONGODB_URI, MONGODB_OPTIONS);
     console.log(`Connected to MongoDB database: ${DB_NAME}`);
+    validateEncryptionKey();
+    console.log("[bootstrap] Chassis encryption key validated.");
     await ensureDatabaseIndexes();
 
     if (SEED_ON_START) {
@@ -743,6 +1120,7 @@ const startServer = async () => {
     }
 
     await syncReviewCounter();
+    await syncDealershipCounter();
 
     httpServer = app.listen(PORT, () => {
       console.log(

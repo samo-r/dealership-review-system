@@ -10,6 +10,8 @@ RUN npm install --omit=dev
 COPY app.js ./
 COPY review.js ./
 COPY dealership.js ./
+COPY inventory.js ./
+COPY utils ./utils
 COPY data ./data
 
 EXPOSE 3030

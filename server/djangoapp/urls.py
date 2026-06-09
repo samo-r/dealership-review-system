@@ -16,6 +16,16 @@ urlpatterns = [
         view=views.create_dealer_admin,
         name="create_dealer_admin",
     ),
+    path(
+        route="admin/users",
+        view=views.list_platform_users,
+        name="list_platform_users",
+    ),
+    path(
+        route="admin/dealerships",
+        view=views.create_dealership,
+        name="create_dealership",
+    ),
     path(route="get_cars", view=views.get_cars, name="getcars"),
     path(route="get_dealers", view=views.get_dealerships, name="get_dealers"),
     path(

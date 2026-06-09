@@ -13,6 +13,8 @@
 "use strict";
 
 const http = require("http");
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 // ---------------------------------------------------------------------------
 // Config — override via CLI flags: --host <h> --port <p>
@@ -23,8 +25,8 @@ const flag = (name, fallback) => {
   return idx !== -1 && args[idx + 1] ? args[idx + 1] : fallback;
 };
 
-const HOST = flag("host", "localhost");
-const PORT = Number(flag("port", "3030"));
+const HOST = flag("host", process.env.SMOKE_TEST_HOST || "localhost");
+const PORT = Number(flag("port", process.env.SMOKE_TEST_PORT || process.env.PORT || "3030"));
 const BASE = `http://${HOST}:${PORT}`;
 
 // ---------------------------------------------------------------------------
@@ -40,7 +42,7 @@ const BOLD   = "\x1b[1m";
 // ---------------------------------------------------------------------------
 // HTTP helper — returns { status, body } where body is parsed JSON if possible
 // ---------------------------------------------------------------------------
-const request = (method, path, payload) =>
+const request = (method, path, payload, extraHeaders = {}) =>
   new Promise((resolve, reject) => {
     const bodyStr = payload ? JSON.stringify(payload) : null;
 
@@ -51,6 +53,7 @@ const request = (method, path, payload) =>
       method,
       headers: {
         "Accept": "application/json",
+        ...extraHeaders,
         ...(bodyStr
           ? {
               "Content-Type":   "application/json",
@@ -258,6 +261,62 @@ const runTests = async () => {
       insert.body && insert.body.name === validPayload.name,
       `got name=${JSON.stringify(insert.body && insert.body.name)}`,
     );
+    check(
+      "New review starts with sentiment_status=pending",
+      insert.body && insert.body.sentiment_status === "pending",
+      `got sentiment_status=${JSON.stringify(insert.body && insert.body.sentiment_status)}`,
+    );
+    check(
+      "New review has null sentiment until worker completes",
+      insert.body && insert.body.sentiment === null,
+      `got sentiment=${JSON.stringify(insert.body && insert.body.sentiment)}`,
+    );
+
+    const internalApiKey = process.env.INTERNAL_API_KEY;
+    if (internalApiKey && insert.body && insert.body.id) {
+      const patch = await request(
+        "PATCH",
+        `/updateReview/${insert.body.id}/sentiment`,
+        {
+          sentiment: "positive",
+          sentiment_status: "completed",
+          sentiment_analyzed_at: new Date().toISOString(),
+          sentiment_error: null,
+        },
+        { "x-internal-api-key": internalApiKey },
+      );
+      check(
+        "PATCH /updateReview/:id/sentiment (valid key) → 200",
+        patch.status === 200,
+        `got ${patch.status}`,
+      );
+      check(
+        "Patched review stores completed sentiment",
+        patch.body &&
+          patch.body.sentiment === "positive" &&
+          patch.body.sentiment_status === "completed",
+        `got ${JSON.stringify(patch.body && {
+          sentiment: patch.body.sentiment,
+          sentiment_status: patch.body.sentiment_status,
+        })}`,
+      );
+
+      const badPatch = await request(
+        "PATCH",
+        `/updateReview/${insert.body.id}/sentiment`,
+        { sentiment: "neutral", sentiment_status: "completed" },
+        { "x-internal-api-key": "invalid-key" },
+      );
+      check(
+        "PATCH /updateReview/:id/sentiment (bad key) → 403",
+        badPatch.status === 403,
+        `got ${badPatch.status}`,
+      );
+    } else {
+      console.log(
+        `  ${YELLOW}↷${RESET} Skipping sentiment patch checks (INTERNAL_API_KEY not set)`,
+      );
+    }
 
     // Insert review — missing required field
     const missingField = { ...validPayload };

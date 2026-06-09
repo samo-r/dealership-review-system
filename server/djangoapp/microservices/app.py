@@ -1,10 +1,18 @@
 from flask import Flask
 from nltk.sentiment import SentimentIntensityAnalyzer
 import json
+import os
 
 app = Flask("Sentiment Analyzer")
 
 sia = SentimentIntensityAnalyzer()
+
+
+def env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 @app.get("/")
@@ -33,4 +41,6 @@ def analyze_sentiment(input_txt):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    host = os.getenv("FLASK_HOST", "0.0.0.0")
+    port = int(os.getenv("FLASK_PORT", "5000"))
+    app.run(debug=env_bool("FLASK_DEBUG"), host=host, port=port)

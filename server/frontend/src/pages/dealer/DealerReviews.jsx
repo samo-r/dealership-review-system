@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import ReviewCard from "../../components/common/ReviewCard";
+import ReviewSummaryCard from "../../components/common/ReviewSummaryCard";
 
 /**
  * Dealer Reviews — read-only view of all reviews for the dealer's assigned dealership
@@ -106,6 +107,8 @@ const DealerReviews = () => {
         </div>
       </div>
 
+      <ReviewSummaryCard sentimentCounts={sentimentCounts} />
+
       {/* Reviews Grid */}
       <div>
         {loading ? (
@@ -138,63 +141,6 @@ const DealerReviews = () => {
           </div>
         )}
       </div>
-
-      {/* Statistics Summary */}
-      {reviews.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">
-            Review Summary
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-slate-900">
-                {reviews.length}
-              </p>
-              <p className="text-sm text-slate-600 mt-1">Total Reviews</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">
-                {sentimentCounts.positive}
-              </p>
-              <p className="text-sm text-slate-600 mt-1">5-Star Reviews</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-yellow-600">
-                {sentimentCounts.neutral}
-              </p>
-              <p className="text-sm text-slate-600 mt-1">Neutral Reviews</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-red-600">
-                {sentimentCounts.negative}
-              </p>
-              <p className="text-sm text-slate-600 mt-1">Negative Reviews</p>
-            </div>
-          </div>
-
-          {/* Sentiment Progress Bar */}
-          <div className="mt-6 flex gap-2 h-3 rounded-full overflow-hidden bg-slate-200">
-            <div
-              className="bg-green-600"
-              style={{
-                width: `${reviews.length > 0 ? (sentimentCounts.positive / reviews.length) * 100 : 0}%`,
-              }}
-            />
-            <div
-              className="bg-yellow-600"
-              style={{
-                width: `${reviews.length > 0 ? (sentimentCounts.neutral / reviews.length) * 100 : 0}%`,
-              }}
-            />
-            <div
-              className="bg-red-600"
-              style={{
-                width: `${reviews.length > 0 ? (sentimentCounts.negative / reviews.length) * 100 : 0}%`,
-              }}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -250,7 +250,15 @@ The Django test suite mocks sentiment calls. For live sentiment scoring, run the
 
 ## Configuration
 
-Create `.env` files locally for Django (`server/.env`) and the Node API (`database/.env`). **Never commit `.env` files or share secrets in documentation** — they are excluded via `.gitignore`.
+Each service has its own environment file. Copy the matching `.env.example` to `.env` in the same folder and replace placeholders with your local values. **Never commit `.env` files.**
+
+| Service | Folder | Template |
+|---------|--------|----------|
+| Django gateway | `server/` | `server/.env.example` |
+| Node data API | `server/database/` | `server/database/.env.example` |
+| React frontend | `server/frontend/` | `server/frontend/.env.example` |
+
+The sentiment worker reads `server/database/.env` (and optionally `server/.env`) when run locally or via Docker Compose.
 
 Use your own secure values for each variable. The tables below list **names only** (see `djangoproj/settings.py`, `djangoapp/restapis.py`, and `database/app.js` for how each is consumed).
 
@@ -262,9 +270,13 @@ Use your own secure values for each variable. The tables below list **names only
 | `DJANGO_DEBUG` | Debug mode flag |
 | `backend_url` | Node.js API base URL |
 | `sentiment_analyzer_url` | Sentiment service base URL |
+| `REDIS_URL` | Redis connection string for async sentiment queue |
+| `SENTIMENT_QUEUE_NAME` | (Optional) Queue name, default `review_sentiment_queue` |
 | `DJANGO_JWT_ACCESS_TTL_MINUTES` | (Optional) Access token lifetime |
 | `DJANGO_JWT_REFRESH_TTL_DAYS` | (Optional) Refresh token lifetime |
-| `DJANGO_JWT_SECRET_KEY` | (Optional) JWT signing key |
+| `DJANGO_JWT_SECRET_KEY` | (Optional) JWT signing key; defaults to `DJANGO_SECRET_KEY` |
+| `DJANGO_UPSTREAM_TIMEOUT` | (Optional) Seconds before upstream Node/sentiment calls time out |
+| `DJANGO_DB_FILENAME` | (Optional) SQLite filename, default `db.sqlite3` |
 
 ### Node API (`database/.env`)
 
@@ -276,6 +288,22 @@ Use your own secure values for each variable. The tables below list **names only
 | `DB_NAME` | Database name |
 | `CORS_ORIGIN` | Allowed CORS origin |
 | `SEED_ON_START` | Whether to seed data on startup |
+| `INTERNAL_API_KEY` | Shared secret for internal sentiment patch route (worker use) |
+| `REDIS_URL` | Redis connection string (worker + optional local Django publish) |
+| `SENTIMENT_QUEUE_NAME` | (Optional) Queue name, default `review_sentiment_queue` |
+| `backend_url` | Node API URL (worker container uses `http://api:3030`) |
+| `sentiment_analyzer_url` | Sentiment service URL (worker container uses `http://sentiment:5000`) |
+| `REDIS_URL_DOCKER` | Redis URL inside Docker Compose network |
+| `BACKEND_URL_DOCKER` | Node API URL inside Docker Compose network |
+| `SENTIMENT_ANALYZER_URL_DOCKER` | Sentiment service URL inside Docker Compose network |
+| `SMOKE_TEST_HOST` | (Optional) Host for Node smoke tests |
+| `SMOKE_TEST_PORT` | (Optional) Port for Node smoke tests |
+
+### React frontend (`frontend/.env`)
+
+| Variable | Purpose |
+|----------|---------|
+| `REACT_APP_DJANGO_PROXY_URL` | Dev-server proxy target for `/djangoapp/*` (see `src/setupProxy.js`) |
 
 ---
 
@@ -285,9 +313,18 @@ Start services in separate terminals (order matters: data layer first).
 
 | Terminal | Directory | Command | URL |
 |----------|-----------|---------|-----|
-| 1 | `server/database` | `npm start` | MongoDB `:27017`, API `:3030` |
+| 1 | `server/database` | `npm run compose:up` or `npm start` | MongoDB `:27017`, API `:3030`, Redis `:6379` |
+| 1b | `server/database` | (Docker) includes sentiment + worker | Sentiment `:5000` |
 | 2 | `server` (venv active) | `python manage.py runserver` | `http://127.0.0.1:8000` |
 | 3 | `server/frontend` | `npm start` | `http://localhost:3000` |
+
+**Local async sentiment (without full Docker stack):**
+
+| Terminal | Directory | Command |
+|----------|-----------|---------|
+| A | `server/database` | Start Redis (Docker: `docker run -p 6379:6379 redis:7-alpine`) |
+| B | `server/djangoapp/microservices` | `python -m flask run` (sentiment API) |
+| C | `server/djangoapp/microservices` | `python sentiment_worker.py` |
 
 The React dev server proxies API requests to Django (`package.json` → `"proxy": "http://127.0.0.1:8000"`).
 
@@ -403,7 +440,8 @@ Express routes for dealerships, reviews, and inventory. See `database/app.js` an
 Planned enhancements for production readiness:
 
 - **Persist sentiment in MongoDB** — store `sentiment` and analyzer metadata at write time instead of computing on every read.
-- **Admin dashboard** — analytics, user management, and platform-wide reporting.
+- **Frontend synchronization** — unified React SPA routing, role landing redirects, capability-gated UI, legacy static pages removed.
+- **Admin dashboard** — overview metrics, dealerships, users, cross-tenant inventory, and create-dealer-admin flow.
 - **Refresh token rotation** — hardened session lifecycle for long-lived dealer sessions.
 - **CI pipeline** — automated test suite on every pull request.
 - **Multi-region deployment** — containerized Django + Node behind a reverse proxy with managed MongoDB Atlas.

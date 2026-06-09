@@ -5,6 +5,7 @@ import neutral_icon from "../assets/neutral.png";
 import negative_icon from "../assets/negative.png";
 import review_icon from "../assets/reviewbutton.png";
 import { useAuth } from "../../context/AuthContext";
+import { hasCapability } from "../../utils/roleCapabilities";
 
 const Dealer = () => {
   const { user, role } = useAuth();
@@ -15,7 +16,7 @@ const Dealer = () => {
   const [loadingDealer, setLoadingDealer] = useState(true);
   const [loadingReviews, setLoadingReviews] = useState(true);
 
-  const canReview = !!user && role !== "DEALER_ADMIN";
+  const canReview = Boolean(user) && hasCapability(role, "review.create");
 
   const sentiIcon = (sentiment) =>
     sentiment === "positive"

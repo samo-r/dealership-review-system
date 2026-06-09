@@ -27,11 +27,12 @@ import DealerReviews from "./pages/dealer/DealerReviews";
 import DealerProfile from "./pages/dealer/DealerProfile";
 import DealerInventory from "./pages/dealer/DealerInventory";
 import CreateDealerAdmin from "./pages/admin/CreateDealerAdmin";
-
-// Admin dashboard placeholder (Sprint E)
-const AdminDashboardHome = () => (
-  <div className="p-6 text-slate-600">Admin dashboard — coming in Sprint E.</div>
-);
+import CreateDealership from "./pages/admin/CreateDealership";
+import CreateUser from "./pages/admin/CreateUser";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminDealerships from "./pages/admin/AdminDealerships";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminInventory from "./pages/admin/AdminInventory";
 
 function App() {
   return (
@@ -96,11 +97,16 @@ function App() {
             </RequireAuth>
           }
         >
-          <Route path="/admin/dashboard" element={<AdminDashboardHome />} />
+          <Route path="/admin/dashboard" element={<AdminOverview />} />
           <Route
             path="/admin/create-dealer-admin"
             element={<CreateDealerAdmin />}
           />
+          <Route path="/admin/dealerships/create" element={<CreateDealership />} />
+          <Route path="/admin/dealerships" element={<AdminDealerships />} />
+          <Route path="/admin/users/create" element={<CreateUser />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/inventory" element={<AdminInventory />} />
         </Route>
       </Routes>
     </AuthProvider>

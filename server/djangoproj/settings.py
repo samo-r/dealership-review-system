@@ -14,11 +14,19 @@ import os
 from datetime import timedelta
 from pathlib import Path
 from urllib.parse import urlparse
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, ".env"))
+
+
+def require_env(name):
+    value = os.getenv(name)
+    if value is None or not str(value).strip():
+        raise ImproperlyConfigured(f"Missing required environment variable: {name}")
+    return str(value).strip()
 
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 FRONTEND_BUILD_DIR = os.path.join(FRONTEND_DIR, "build")
@@ -83,10 +91,7 @@ def normalize_csrf_trusted_origins(origins):
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-dev-only-key-change-me",
-)
+SECRET_KEY = require_env("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool("DJANGO_DEBUG", default=True)
@@ -158,7 +163,7 @@ WSGI_APPLICATION = "djangoproj.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": BASE_DIR / os.getenv("DJANGO_DB_FILENAME", "db.sqlite3"),
     }
 }
 
@@ -262,3 +267,19 @@ if CSRF_COOKIE_SAMESITE == "None":
 
 if SESSION_COOKIE_SAMESITE == "None":
     SESSION_COOKIE_SECURE = True
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "autocars.sentiment": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
+    },
+}

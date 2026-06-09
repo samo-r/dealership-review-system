@@ -17,12 +17,15 @@ export const getRedirectFromLocation = (location) => {
   return "/";
 };
 
+export const getRoleLandingPath = (role) => {
+  if (role === "ADMIN") return "/admin/dashboard";
+  if (role === "DEALER_ADMIN") return "/dealer/dashboard";
+  return "/home";
+};
+
 export const getPostLoginPath = (role, redirectTo) => {
   if (redirectTo && redirectTo !== "/") {
     return redirectTo;
   }
-  if (role === "ADMIN") return "/admin/dashboard";
-  if (role === "DEALER_ADMIN") return "/dealer/dashboard";
-  if (role === "CUSTOMER") return "/dealers";
-  return "/";
+  return getRoleLandingPath(role);
 };

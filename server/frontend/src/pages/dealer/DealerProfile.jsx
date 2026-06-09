@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { hasCapability } from "../../utils/roleCapabilities";
 
 /**
  * Dealer Profile — edit dealership information
  * DEALER_ADMIN can only edit their own assigned dealership
  */
 const DealerProfile = () => {
-  const { user, authHeaders } = useAuth();
+  const { user, authHeaders, role } = useAuth();
   const dealerId = user?.assignedDealerId;
+  const canUpdateProfile = hasCapability(role, "dealership.update.own");
 
   const [dealership, setDealership] = useState(null);
   const [formData, setFormData] = useState({
@@ -185,6 +187,7 @@ const DealerProfile = () => {
         onSubmit={handleSubmit}
         className="bg-white rounded-lg shadow-md p-6 space-y-6"
       >
+        <fieldset disabled={!canUpdateProfile} className="space-y-6 border-0 p-0 m-0">
         {/* Full Name */}
         <div>
           <label htmlFor="full_name" className="block text-sm font-medium text-slate-700 mb-2">
@@ -315,15 +318,19 @@ const DealerProfile = () => {
           </div>
         </div>
 
+        </fieldset>
+
         {/* Submit Button */}
         <div className="flex gap-4 pt-4">
-          <button
-            type="submit"
-            disabled={submitting}
-            className="px-6 py-2 bg-brand-primary text-white font-medium rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {submitting ? "Saving..." : "Save Changes"}
-          </button>
+          {canUpdateProfile && (
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-6 py-2 bg-brand-primary text-white font-medium rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? "Saving..." : "Save Changes"}
+            </button>
+          )}
         </div>
       </form>
 

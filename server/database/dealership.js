@@ -39,6 +39,14 @@ const dealerships = new Schema({
     type: String,
     required: true,
   },
+  contact_number: {
+    type: String,
+    default: "",
+  },
+  email: {
+    type: String,
+    default: "",
+  },
 });
 
 module.exports = mongoose.model("dealerships", dealerships);

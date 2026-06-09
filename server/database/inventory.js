@@ -29,6 +29,10 @@ const cars = new Schema({
     type: Number,
     required: true,
   },
+  chassis_number: {
+    type: String,
+    required: true,
+  },
 });
 
 module.exports = mongoose.model("cars", cars);

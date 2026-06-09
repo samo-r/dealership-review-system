@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import VehicleForm from "../../components/common/VehicleForm";
+import { hasCapability } from "../../utils/roleCapabilities";
 
 /**
  * Dealer Inventory — full CRUD interface for managing vehicles
  * DEALER_ADMIN can only manage inventory for their own assigned dealership
  */
 const DealerInventory = () => {
-  const { user, authHeaders } = useAuth();
+  const { user, authHeaders, role } = useAuth();
   const dealerId = user?.assignedDealerId;
+  const canManageInventory = hasCapability(role, "inventory.create");
+  const canUpdateInventory = hasCapability(role, "inventory.update.own");
+  const canDeleteInventory = hasCapability(role, "inventory.delete.own");
 
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +81,7 @@ const DealerInventory = () => {
             "Content-Type": "application/json",
             ...authHeaders(),
           },
-          body: JSON.stringify({ ...vehicleData, dealer_id: dealerId }),
+          body: JSON.stringify({ dealer_id: dealerId, ...vehicleData }),
         }
       );
       const data = await res.json();
@@ -196,7 +200,7 @@ const DealerInventory = () => {
             Manage vehicles for your dealership.
           </p>
         </div>
-        {formMode !== "add" && (
+        {canManageInventory && formMode !== "add" && (
           <button
             onClick={() => {
               setFormMode("add");
@@ -255,12 +259,14 @@ const DealerInventory = () => {
             <p className="text-slate-500 text-lg mb-4">
               No vehicles in inventory yet.
             </p>
-            <button
-              onClick={() => setFormMode("add")}
-              className="px-4 py-2 bg-brand-primary text-white font-medium rounded-lg hover:bg-brand-dark transition-colors"
-            >
-              Add your first vehicle
-            </button>
+            {canManageInventory && (
+              <button
+                onClick={() => setFormMode("add")}
+                className="px-4 py-2 bg-brand-primary text-white font-medium rounded-lg hover:bg-brand-dark transition-colors"
+              >
+                Add your first vehicle
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -274,10 +280,10 @@ const DealerInventory = () => {
                     Model
                   </th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">
-                    Year
+                    Body
                   </th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">
-                    Price
+                    Year
                   </th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">
                     Mileage
@@ -293,18 +299,16 @@ const DealerInventory = () => {
                   return (
                     <tr key={id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 font-medium text-slate-900">
-                        {vehicle.car_make}
+                        {vehicle.make}
                       </td>
                       <td className="px-4 py-3 text-slate-700">
-                        {vehicle.car_model}
+                        {vehicle.model}
                       </td>
                       <td className="px-4 py-3 text-slate-700">
-                        {vehicle.car_year}
+                        {vehicle.bodyType}
                       </td>
                       <td className="px-4 py-3 text-slate-700">
-                        {vehicle.price != null
-                          ? `$${Number(vehicle.price).toLocaleString()}`
-                          : "—"}
+                        {vehicle.year}
                       </td>
                       <td className="px-4 py-3 text-slate-700">
                         {vehicle.mileage != null
@@ -312,20 +316,26 @@ const DealerInventory = () => {
                           : "—"}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => openEdit(vehicle)}
-                            className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors font-medium"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => setConfirmDeleteId(id)}
-                            className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors font-medium"
-                          >
-                            Delete
-                          </button>
-                        </div>
+                        {(canUpdateInventory || canDeleteInventory) && (
+                          <div className="flex justify-end gap-2">
+                            {canUpdateInventory && (
+                              <button
+                                onClick={() => openEdit(vehicle)}
+                                className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors font-medium"
+                              >
+                                Edit
+                              </button>
+                            )}
+                            {canDeleteInventory && (
+                              <button
+                                onClick={() => setConfirmDeleteId(id)}
+                                className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors font-medium"
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );

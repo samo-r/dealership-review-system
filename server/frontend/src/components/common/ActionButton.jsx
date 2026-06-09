@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { hasCapability } from "../../utils/roleCapabilities";
 
 /**
  * ActionButton — global "Add Review" entry point.
@@ -33,8 +34,7 @@ const ActionButton = ({
       ? isAuthenticated
       : Boolean((token && user?.userName) || user?.userName);
 
-  const canAddReview =
-    authenticated && (role === "CUSTOMER" || role === "ADMIN");
+  const canAddReview = authenticated && hasCapability(role, "review.create");
 
   const handleClick = () => {
     if (!reviewPath) {
@@ -55,7 +55,10 @@ const ActionButton = ({
     alert("Your account type cannot add reviews.");
   };
 
-  if (role === "DEALER_ADMIN") {
+  const canShowButton =
+    !authenticated || hasCapability(role, "review.create");
+
+  if (!canShowButton) {
     return null;
   }
 

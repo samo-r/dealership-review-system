@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 
 /**
  * Used at the root route "/".
- * Sends each role to their natural landing page.
+ * Sends each role to their natural landing page (redirect bounce).
  */
 const RoleRedirect = () => {
   const { role } = useAuth();
@@ -12,8 +12,7 @@ const RoleRedirect = () => {
   if (role === "DEALER_ADMIN") return <Navigate to="/dealer/dashboard" replace />;
   if (role === "ADMIN") return <Navigate to="/admin/dashboard" replace />;
 
-  // CUSTOMER and anonymous both land on the public dealers page
-  return <Navigate to="/dealers" replace />;
+  return <Navigate to="/home" replace />;
 };
 
 export default RoleRedirect;

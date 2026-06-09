@@ -5,6 +5,7 @@ import {
   getPostLoginPath,
   getRedirectFromLocation,
 } from "../../utils/authRedirect";
+import PasswordInput from "../common/PasswordInput";
 
 const Login = () => {
   const [userName, setUserName] = useState("");
@@ -103,17 +104,14 @@ const Login = () => {
             />
           </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Password</label>
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              name="password"
-              type="password"
-              placeholder="Password"
-              className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
-            />
-          </div>
+          <PasswordInput
+            label="Password"
+            name="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            autoComplete="current-password"
+          />
 
           <button
             type="submit"

@@ -41,7 +41,7 @@ describe("App route authorization", () => {
     expect(screen.getByRole("button", { name: /login/i })).toBeInTheDocument();
   });
 
-  it("redirects authenticated customers from /dealer/dashboard back to the home page", async () => {
+  it("redirects authenticated customers from /dealer/dashboard to the home page", async () => {
     useAuth.mockReturnValue({
       token: "fake-token",
       role: "CUSTOMER",
@@ -54,8 +54,8 @@ describe("App route authorization", () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole("heading", { name: /find a dealership/i })).toBeInTheDocument();
-    expect(screen.queryByText(/dealer dashboard/i)).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Autocars UG/i })).toBeInTheDocument();
+    expect(screen.queryByText(/System Admin Panel/i)).not.toBeInTheDocument();
   });
 
   it("allows public access to /reviews without authentication", async () => {

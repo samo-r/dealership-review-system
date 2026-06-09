@@ -1,5 +1,5 @@
 import React from "react";
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const roleLinks = {
@@ -11,7 +11,7 @@ const roleLinks = {
   ],
   ADMIN: [
     { to: "/admin/dashboard", label: "Overview" },
-    { to: "/admin/create-dealer-admin", label: "Create Dealer Admin" },
+    { to: "/admin/users/create", label: "Add New User" },
     { to: "/admin/dealerships", label: "Dealerships" },
     { to: "/admin/users", label: "Users" },
     { to: "/admin/inventory", label: "Inventory" },
@@ -71,12 +71,12 @@ const DashboardLayout = () => {
           <span className="text-sm text-slate-500">
             {role === "ADMIN" ? "System Admin" : "Dealer Admin"} Panel
           </span>
-          <a
-            href="/home"
+          <Link
+            to="/home"
             className="text-sm text-brand-primary hover:underline"
           >
             ← Public Site
-          </a>
+          </Link>
         </header>
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />

@@ -32,7 +32,15 @@ User = get_user_model()
 DEALER_STUB = {"id": 1, "full_name": "Test Dealer", "city": "Testville", "state": "TX"}
 MOCK_DEALERS = [DEALER_STUB]
 MOCK_DEALER = [DEALER_STUB]
-REVIEW_STUB = {"id": 1, "dealership": 1, "review": "Great!", "author_id": None, "author_username": None}
+REVIEW_STUB = {
+    "id": 1,
+    "dealership": 1,
+    "review": "Great!",
+    "author_id": None,
+    "author_username": None,
+    "sentiment": "positive",
+    "sentiment_status": "completed",
+}
 UPDATE_OK = {"id": 1, "full_name": "Updated"}
 
 
@@ -170,7 +178,80 @@ class AuthTests(RbacTestBase):
 
 
 # ---------------------------------------------------------------------------
-# 2.  Admin — create dealer admin
+# 2.  Admin — create dealership
+# ---------------------------------------------------------------------------
+
+MOCK_CREATED_DEALERSHIP = {
+    "status": 201,
+    "dealership": {
+        "id": 99,
+        "full_name": "Kampala Motors",
+        "address": "Plot 12, Kampala",
+        "contact_number": "+256700000000",
+        "email": "info@kampala.example",
+    },
+    "dealership_id": 99,
+}
+
+
+class CreateDealershipTests(RbacTestBase):
+
+    def _post(self, user, payload):
+        headers = auth_header(user) if user else {}
+        return self.client.post(
+            "/djangoapp/admin/dealerships",
+            json_body(payload),
+            content_type="application/json",
+            **headers,
+        )
+
+    @patch("djangoapp.views.post_request", return_value=MOCK_CREATED_DEALERSHIP)
+    def test_admin_can_create_dealership(self, _mock):
+        resp = self._post(self.admin, {
+            "name": "Kampala Motors",
+            "location": "Plot 12, Kampala",
+            "contactNumber": "+256700000000",
+            "email": "info@kampala.example",
+        })
+        data = resp.json()
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(data["dealership_id"], 99)
+
+    @patch("djangoapp.views.post_request", return_value=MOCK_CREATED_DEALERSHIP)
+    def test_superuser_can_create_dealership(self, _mock):
+        resp = self._post(self.superuser, {
+            "name": "Entebbe Autos",
+            "location": "Entebbe Road",
+            "contactNumber": "+256711111111",
+            "email": "hello@entebbe.example",
+        })
+        self.assertEqual(resp.status_code, 201)
+
+    def test_customer_cannot_create_dealership(self):
+        resp = self._post(self.customer, {
+            "name": "Bad Motors",
+            "location": "Nowhere",
+            "contactNumber": "000",
+            "email": "bad@example.com",
+        })
+        self.assertEqual(resp.status_code, 403)
+
+    def test_anonymous_cannot_create_dealership(self):
+        resp = self._post(None, {
+            "name": "Bad Motors",
+            "location": "Nowhere",
+            "contactNumber": "000",
+            "email": "bad@example.com",
+        })
+        self.assertEqual(resp.status_code, 401)
+
+    def test_missing_fields_returns_400(self):
+        resp = self._post(self.admin, {"name": "Incomplete"})
+        self.assertEqual(resp.status_code, 400)
+
+
+# ---------------------------------------------------------------------------
+# 3.  Admin — create dealer admin
 # ---------------------------------------------------------------------------
 
 class CreateDealerAdminTests(RbacTestBase):
@@ -261,6 +342,25 @@ class CreateDealerAdminTests(RbacTestBase):
         self.assertEqual(resp.json()["error"]["code"], "DEALER_NOT_FOUND")
 
 
+class AdminUserListTests(RbacTestBase):
+
+    def test_admin_can_list_platform_users(self):
+        resp = self.client.get("/djangoapp/admin/users", **auth_header(self.admin))
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertEqual(body["status"], 200)
+        self.assertTrue(any(user["role"] == "ADMIN" for user in body["users"]))
+        self.assertTrue(any(user["role"] == "CUSTOMER" for user in body["users"]))
+
+    def test_customer_cannot_list_platform_users(self):
+        resp = self.client.get("/djangoapp/admin/users", **auth_header(self.customer))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_anonymous_cannot_list_platform_users(self):
+        resp = self.client.get("/djangoapp/admin/users")
+        self.assertEqual(resp.status_code, 401)
+
+
 # ---------------------------------------------------------------------------
 # 3.  Dealership read (anonymous allowed)
 # ---------------------------------------------------------------------------
@@ -312,30 +412,32 @@ MOCK_REVIEWS = [make_review_stub(author_id=1)]
 class ReviewReadTests(RbacTestBase):
 
     @patch("djangoapp.views.get_request", return_value=MOCK_REVIEWS)
-    @patch("djangoapp.views.analyze_review_sentiments", return_value={"sentiment": "positive"})
-    def test_anonymous_can_read_reviews(self, _sent, _get):
+    def test_anonymous_can_read_reviews(self, _get):
         resp = self.client.get("/djangoapp/reviews/dealer/1")
         self.assertEqual(resp.status_code, 200)
         reviews = resp.json()["reviews"]
         self.assertEqual(reviews[0]["sentiment"], "positive")
+        self.assertEqual(reviews[0]["sentiment_status"], "completed")
 
     @patch("djangoapp.views.get_request", return_value=MOCK_REVIEWS)
-    @patch("djangoapp.views.analyze_review_sentiments", return_value={"sentiment": "neutral"})
-    def test_customer_can_read_reviews(self, _sent, _get):
+    def test_customer_can_read_reviews(self, _get):
         resp = self.client.get(
             "/djangoapp/reviews/dealer/1",
             **auth_header(self.customer),
         )
         self.assertEqual(resp.status_code, 200)
 
-    @patch("djangoapp.views.get_request", return_value=MOCK_REVIEWS)
-    @patch("djangoapp.views.analyze_review_sentiments",
-           return_value={"ok": False, "error": {"service": "sentiment-analyzer", "message": "down"}})
-    def test_sentiment_failure_falls_back_to_neutral(self, _sent, _get):
+    @patch("djangoapp.views.get_request", return_value=[{
+        **REVIEW_STUB,
+        "sentiment": None,
+        "sentiment_status": "pending",
+    }])
+    def test_reviews_return_stored_sentiment_without_live_analysis(self, _get):
         resp = self.client.get("/djangoapp/reviews/dealer/1")
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.json()["reviews"][0]["sentiment"], "neutral")
-        self.assertTrue(resp.json()["reviews"][0].get("sentiment_error"))
+        review = resp.json()["reviews"][0]
+        self.assertIsNone(review["sentiment"])
+        self.assertEqual(review["sentiment_status"], "pending")
 
 
 # ---------------------------------------------------------------------------
@@ -344,13 +446,19 @@ class ReviewReadTests(RbacTestBase):
 
 class MyReviewsTests(RbacTestBase):
 
-    @patch("djangoapp.views.analyze_review_sentiments", return_value={"sentiment": "positive"})
     @patch("djangoapp.views.get_request")
-    def test_customer_can_fetch_only_own_reviews(self, mock_get, _sentiment):
+    def test_customer_can_fetch_only_own_reviews(self, mock_get):
         mock_get.side_effect = [
             [{"id": 1, "full_name": "Dealer One"}],  # /fetchDealers
             [  # /fetchReviews/dealer/1
-                {"id": 101, "dealership": 1, "review": "Mine", "author_id": self.customer.id},
+                {
+                    "id": 101,
+                    "dealership": 1,
+                    "review": "Mine",
+                    "author_id": self.customer.id,
+                    "sentiment": "positive",
+                    "sentiment_status": "completed",
+                },
                 {"id": 102, "dealership": 1, "review": "Not mine", "author_id": self.admin.id},
             ],
         ]
@@ -381,6 +489,7 @@ REVIEW_PAYLOAD = {
     "car_model": "Camry",
     "car_year": 2022,
     "name": "Test User",
+    "chassis_number": "ABC123456",
 }
 
 
@@ -395,17 +504,22 @@ class ReviewCreateTests(RbacTestBase):
             **headers,
         )
 
+    @patch("djangoapp.views.publish_review_sentiment_event", return_value=True)
+    @patch("djangoapp.views.verify_chassis", return_value={"verified": True})
     @patch("djangoapp.views.post_review", return_value={"id": 99})
-    def test_customer_can_create_review(self, mock_post):
+    def test_customer_can_create_review(self, mock_post, _mock_verify, _mock_publish):
         resp = self._post(self.customer)
         self.assertEqual(resp.status_code, 200)
         # Authorship is stamped onto the forwarded payload
         call_data = mock_post.call_args[0][0]
         self.assertEqual(call_data["author_id"], self.customer.id)
         self.assertEqual(call_data["author_username"], self.customer.username)
+        self.assertNotIn("chassis_number", call_data)
 
+    @patch("djangoapp.views.publish_review_sentiment_event", return_value=True)
+    @patch("djangoapp.views.verify_chassis", return_value={"verified": True})
     @patch("djangoapp.views.post_review", return_value={"id": 99})
-    def test_admin_can_create_review(self, _mock):
+    def test_admin_can_create_review(self, _mock_post, _mock_verify, _mock_publish):
         resp = self._post(self.admin)
         self.assertEqual(resp.status_code, 200)
 
@@ -430,13 +544,84 @@ class ReviewCreateTests(RbacTestBase):
         resp = self.client.get("/djangoapp/add_review", **auth_header(self.customer))
         self.assertEqual(resp.status_code, 405)
 
+    @patch("djangoapp.views.verify_chassis", return_value={"verified": True})
+    def test_missing_chassis_number_returns_400(self, _mock_verify):
+        payload = dict(REVIEW_PAYLOAD)
+        payload.pop("chassis_number")
+        resp = self._post(self.customer, payload)
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.json()["error"]["code"], "CHASSIS_REQUIRED")
+
+    @patch("djangoapp.views.verify_chassis", return_value={"verified": False})
+    def test_invalid_chassis_number_blocks_review(self, _mock_verify):
+        resp = self._post(self.customer)
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.json()["error"]["code"], "CHASSIS_VERIFICATION_FAILED")
+
+    @patch("djangoapp.views.publish_review_sentiment_event", return_value=True)
+    @patch("djangoapp.views.verify_chassis", return_value={"verified": True})
+    @patch("djangoapp.views.post_review", return_value={"id": 99})
+    def test_chassis_number_is_not_forwarded_to_review_storage(self, mock_post, _mock_verify, _mock_publish):
+        resp = self._post(self.customer)
+        self.assertEqual(resp.status_code, 200)
+        call_data = mock_post.call_args[0][0]
+        self.assertNotIn("chassis_number", call_data)
+
+
+UPDATE_REVIEW_PAYLOAD = {"review": "Updated text"}
+
+
+class SentimentEventTests(RbacTestBase):
+
+    @patch("djangoapp.views.verify_chassis", return_value={"verified": True})
+    @patch("djangoapp.views.publish_review_sentiment_event", return_value=True)
+    @patch("djangoapp.views.post_review", return_value={"id": 99, "sentiment_status": "pending"})
+    def test_add_review_publishes_sentiment_event(self, mock_post, mock_publish, _mock_verify):
+        resp = self.client.post(
+            "/djangoapp/add_review",
+            json_body(REVIEW_PAYLOAD),
+            content_type="application/json",
+            **auth_header(self.customer),
+        )
+        self.assertEqual(resp.status_code, 200)
+        mock_publish.assert_called_once_with(
+            "review.created",
+            99,
+            REVIEW_PAYLOAD["review"],
+        )
+
+    @patch("djangoapp.views.publish_review_sentiment_event", return_value=True)
+    @patch("djangoapp.views.put_request", return_value={"id": 1, "sentiment_status": "pending"})
+    def test_update_review_text_publishes_sentiment_event(self, _put, mock_publish):
+        resp = self.client.put(
+            "/djangoapp/reviews/1/update",
+            json_body(UPDATE_REVIEW_PAYLOAD),
+            content_type="application/json",
+            **auth_header(self.admin),
+        )
+        self.assertEqual(resp.status_code, 200)
+        mock_publish.assert_called_once_with(
+            "review.updated",
+            1,
+            UPDATE_REVIEW_PAYLOAD["review"],
+        )
+
+    @patch("djangoapp.views.publish_review_sentiment_event", return_value=True)
+    @patch("djangoapp.views.put_request", return_value={"id": 1})
+    def test_update_review_without_text_skips_sentiment_event(self, _put, mock_publish):
+        resp = self.client.put(
+            "/djangoapp/reviews/1/update",
+            json_body({"car_make": "Toyota"}),
+            content_type="application/json",
+            **auth_header(self.admin),
+        )
+        self.assertEqual(resp.status_code, 200)
+        mock_publish.assert_not_called()
+
 
 # ---------------------------------------------------------------------------
 # 6.  Review update
 # ---------------------------------------------------------------------------
-
-UPDATE_REVIEW_PAYLOAD = {"review": "Updated text"}
-
 
 class ReviewUpdateTests(RbacTestBase):
 
@@ -637,13 +822,13 @@ class UpstreamErrorTests(RbacTestBase):
         self.assertEqual(resp.status_code, 503)
 
     @patch("djangoapp.views.get_request", return_value=UPSTREAM_ERROR)
-    @patch("djangoapp.views.analyze_review_sentiments", return_value={"sentiment": "neutral"})
-    def test_upstream_error_on_reviews_is_surfaced(self, _sent, _get):
+    def test_upstream_error_on_reviews_is_surfaced(self, _get):
         resp = self.client.get("/djangoapp/reviews/dealer/1")
         self.assertEqual(resp.status_code, 503)
 
+    @patch("djangoapp.views.verify_chassis", return_value={"verified": True})
     @patch("djangoapp.views.post_review", return_value=UPSTREAM_ERROR)
-    def test_upstream_error_on_add_review_is_surfaced(self, _mock):
+    def test_upstream_error_on_add_review_is_surfaced(self, _mock, _verify):
         resp = self.client.post(
             "/djangoapp/add_review",
             json_body(REVIEW_PAYLOAD),

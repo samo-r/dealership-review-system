@@ -61,8 +61,17 @@ describe("DealerInventory RBAC behavior", () => {
     fireEvent.change(screen.getByPlaceholderText(/e.g., Camry/i), {
       target: { value: "Camry" },
     });
-    fireEvent.change(screen.getAllByRole("spinbutton")[0], {
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: "Sedan" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/e.g., 45000/i), {
+      target: { value: "12000" },
+    });
+    fireEvent.change(screen.getByDisplayValue(String(new Date().getFullYear())), {
       target: { value: "2024" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Enter chassis number/i), {
+      target: { value: "ABC123456" },
     });
 
     fireEvent.click(screen.getByRole("button", { name: /Add Vehicle/i }));
@@ -76,9 +85,12 @@ describe("DealerInventory RBAC behavior", () => {
     const body = JSON.parse(addRequest[1].body);
     expect(body).toMatchObject({
       dealer_id: 1,
-      car_make: "Toyota",
-      car_model: "Camry",
-      car_year: "2024",
+      make: "Toyota",
+      model: "Camry",
+      bodyType: "Sedan",
+      year: 2024,
+      mileage: 12000,
+      chassis_number: "ABC123456",
     });
   });
 
@@ -100,7 +112,7 @@ describe("DealerInventory RBAC behavior", () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole("heading", { name: /find a dealership/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /autocars ug/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /add vehicle/i })).not.toBeInTheDocument();
   });
 });
