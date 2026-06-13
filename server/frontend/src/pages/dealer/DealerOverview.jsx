@@ -108,7 +108,7 @@ const DealerOverview = () => {
               to="/dealer/profile"
               className="px-4 py-2 text-brand-primary hover:text-brand-dark font-medium"
             >
-              Edit →
+              Edit
             </Link>
           </div>
 
@@ -144,7 +144,7 @@ const DealerOverview = () => {
 
         <div className="bg-white rounded-lg shadow-md p-6">
           <p className="text-slate-600 text-sm uppercase tracking-wide">
-            ⭐ 5-Star Reviews
+            5-Star Reviews
           </p>
           <p className="text-4xl font-bold text-green-600 mt-2">
             {sentimentCounts.positive}
@@ -153,7 +153,7 @@ const DealerOverview = () => {
 
         <div className="bg-white rounded-lg shadow-md p-6">
           <p className="text-slate-600 text-sm uppercase tracking-wide">
-            😐 Neutral Reviews
+            Neutral Reviews
           </p>
           <p className="text-4xl font-bold text-yellow-600 mt-2">
             {sentimentCounts.neutral}
@@ -162,7 +162,7 @@ const DealerOverview = () => {
 
         <div className="bg-white rounded-lg shadow-md p-6">
           <p className="text-slate-600 text-sm uppercase tracking-wide">
-            👎 Negative Reviews
+            Negative Reviews
           </p>
           <p className="text-4xl font-bold text-red-600 mt-2">
             {sentimentCounts.negative}
@@ -231,35 +231,26 @@ const DealerOverview = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
             to="/dealer/inventory"
-            className="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:border-brand-primary hover:bg-brand-primary hover:bg-opacity-5 transition-colors"
+            className="p-4 border border-slate-200 rounded-lg hover:border-brand-primary hover:bg-brand-primary hover:bg-opacity-5 transition-colors"
           >
-            <div>
-              <p className="font-bold text-slate-900">Inventory</p>
-              <p className="text-sm text-slate-600">Manage vehicles</p>
-            </div>
-            <span className="text-2xl">📦</span>
+            <p className="font-bold text-slate-900">Inventory</p>
+            <p className="text-sm text-slate-600">Manage vehicles</p>
           </Link>
 
           <Link
             to="/dealer/reviews"
-            className="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:border-brand-primary hover:bg-brand-primary hover:bg-opacity-5 transition-colors"
+            className="p-4 border border-slate-200 rounded-lg hover:border-brand-primary hover:bg-brand-primary hover:bg-opacity-5 transition-colors"
           >
-            <div>
-              <p className="font-bold text-slate-900">Reviews</p>
-              <p className="text-sm text-slate-600">View customer feedback</p>
-            </div>
-            <span className="text-2xl">⭐</span>
+            <p className="font-bold text-slate-900">Reviews</p>
+            <p className="text-sm text-slate-600">View customer feedback</p>
           </Link>
 
           <Link
             to="/dealer/profile"
-            className="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:border-brand-primary hover:bg-brand-primary hover:bg-opacity-5 transition-colors"
+            className="p-4 border border-slate-200 rounded-lg hover:border-brand-primary hover:bg-brand-primary hover:bg-opacity-5 transition-colors"
           >
-            <div>
-              <p className="font-bold text-slate-900">Profile</p>
-              <p className="text-sm text-slate-600">Edit dealership info</p>
-            </div>
-            <span className="text-2xl">⚙️</span>
+            <p className="font-bold text-slate-900">Profile</p>
+            <p className="text-sm text-slate-600">Edit dealership info</p>
           </Link>
         </div>
       </div>
@@ -301,7 +292,7 @@ const DealerOverview = () => {
               to="/dealer/reviews"
               className="block mt-4 text-center text-brand-primary hover:underline font-medium"
             >
-              View all {reviews.length} reviews →
+              View all {reviews.length} reviews
             </Link>
           )}
         </div>

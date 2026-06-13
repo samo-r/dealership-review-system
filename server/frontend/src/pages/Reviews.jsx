@@ -97,21 +97,21 @@ const Reviews = () => {
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-wrap gap-2">
             {[
-              { id: "all", label: "All Reviews", icon: "📋" },
-              { id: "positive", label: "5 Stars", icon: "⭐" },
-              { id: "neutral", label: "3 Stars", icon: "😐" },
-              { id: "negative", label: "1 Star", icon: "👎" },
+              { id: "all", label: "All Reviews" },
+              { id: "positive", label: "5 Stars" },
+              { id: "neutral", label: "3 Stars" },
+              { id: "negative", label: "1 Star" },
             ].map((filter) => (
               <button
                 key={filter.id}
                 onClick={() => setSelectedSentiment(filter.id)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   selectedSentiment === filter.id
                     ? "bg-brand-primary text-white"
                     : "bg-slate-200 text-slate-700 hover:bg-slate-300"
                 }`}
               >
-                {filter.icon} {filter.label} ({sentimentCounts[filter.id]})
+                {filter.label} ({sentimentCounts[filter.id]})
               </button>
             ))}
           </div>
@@ -163,7 +163,7 @@ const Reviews = () => {
             to="/dealers"
             className="inline-flex items-center px-8 py-3 bg-white text-brand-primary rounded-lg font-bold hover:bg-brand-light transition-colors"
           >
-            Write a Review →
+            Write a Review
           </Link>
         </div>
       </section>

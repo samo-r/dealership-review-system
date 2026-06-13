@@ -69,7 +69,7 @@ const ActionButton = ({
       disabled={!reviewPath}
       className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
-      {label} →
+      {label}
     </button>
   );
 };

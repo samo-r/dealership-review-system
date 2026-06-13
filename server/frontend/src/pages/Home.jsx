@@ -22,22 +22,39 @@ const Home = () => {
           `${window.location.origin}/djangoapp/get_dealers`
         );
         const dealeData = await dealeRes.json();
+        const dealershipList = dealeData.status === 200 ? dealeData.dealers || [] : [];
         if (dealeData.status === 200) {
-          setDealerships(dealeData.dealers.slice(0, 6));
+          setDealerships(dealershipList.slice(0, 6));
         }
 
-        // Fetch reviews
-        const reviewRes = await fetch(
-          `${window.location.origin}/djangoapp/reviews/dealer/1` // Get first dealer's reviews as sample
+        const reviewBatches = await Promise.all(
+          dealershipList.map(async (dealer) => {
+            try {
+              const reviewRes = await fetch(
+                `${window.location.origin}/djangoapp/reviews/dealer/${dealer.id}`
+              );
+              const reviewData = await reviewRes.json();
+              if (reviewData.status === 200 && reviewData.reviews) {
+                return reviewData.reviews
+                  .filter((review) => review.sentiment === "positive")
+                  .map((review) => ({
+                    ...review,
+                    dealerName: dealer.full_name,
+                  }));
+              }
+            } catch (reviewError) {
+              console.error(`Error fetching reviews for dealer ${dealer.id}:`, reviewError);
+            }
+            return [];
+          })
         );
-        const reviewData = await reviewRes.json();
-        if (reviewData.status === 200) {
-          // Filter to 5-star reviews only, limit to 5
-          const topReviews = (reviewData.reviews || [])
-            .filter((r) => r.sentiment === "positive")
-            .slice(0, 5);
-          setReviews(topReviews);
-        }
+
+        const allPositiveReviews = reviewBatches.flat();
+
+        allPositiveReviews.sort(
+          (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+        );
+        setReviews(allPositiveReviews.slice(0, 5));
       } catch (err) {
         console.error("Error fetching home data:", err);
       } finally {
@@ -105,7 +122,7 @@ const Home = () => {
                   to="/dealers"
                   className="inline-flex items-center px-6 py-3 bg-brand-primary text-white rounded-lg font-medium hover:bg-brand-dark transition-colors"
                 >
-                  View All Dealerships →
+                  View All Dealerships
                 </Link>
               </div>
             </>
@@ -123,10 +140,14 @@ const Home = () => {
             See what customers are saying about our dealerships
           </p>
 
-          {reviews.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-12 bg-slate-50 rounded-lg">
+              <p className="text-slate-500">Loading reviews...</p>
+            </div>
+          ) : reviews.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {reviews.map((review) => (
-                <ReviewCard key={review.id} review={review} />
+                <ReviewCard key={review.id} review={review} dealerName={review.dealerName} />
               ))}
             </div>
           ) : (
@@ -143,7 +164,7 @@ const Home = () => {
               to="/reviews"
               className="inline-flex items-center px-6 py-3 bg-brand-primary text-white rounded-lg font-medium hover:bg-brand-dark transition-colors"
             >
-              Read All Reviews →
+              Read All Reviews
             </Link>
           </div>
         </div>
@@ -162,7 +183,7 @@ const Home = () => {
             to="/dealers"
             className="inline-flex items-center px-8 py-3 bg-brand-primary text-white rounded-lg font-bold hover:bg-brand-dark transition-colors"
           >
-            Start Reviewing →
+            Start Reviewing
           </Link>
         </div>
       </section>

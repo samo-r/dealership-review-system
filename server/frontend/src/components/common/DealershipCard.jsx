@@ -59,7 +59,7 @@ const DealershipCard = ({ dealer, variant = "card" }) => {
           to={`/dealer/${dealer.id}`}
           className="inline-flex items-center px-4 py-2 rounded-md bg-brand-primary text-white text-sm font-medium hover:bg-brand-dark transition-colors"
         >
-          View Dealership →
+          View Dealership
         </Link>
       </div>
     </div>

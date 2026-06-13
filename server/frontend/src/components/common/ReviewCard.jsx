@@ -1,22 +1,37 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 /**
  * ReviewCard — displays a single review.
- * Reused on:
- *   - Home page "Wall of Love"
- *   - /reviews public list
- *   - Dealer's private review feed
- *   - Admin moderation view
+ * Reused on public lists, dealer feeds, and admin moderation.
  *
  * Props:
- *   review: { review, car_make, car_model, car_year, author_username, sentiment }
- *   onDelete?: (reviewId) => void  — delete callback (optional, for admin)
- *   showDeleteButton?: boolean  — show delete button if onDelete is present
+ *   review: { id, review, car_make, car_model, car_year, author_username, sentiment }
+ *   dealerName?: string — dealership context (moderation)
+ *   showDeleteButton?: boolean
+ *   onDelete?: (reviewId) => void
+ *   showEditButton?: boolean
+ *   onSaveEdit?: (reviewId, newText) => Promise<boolean>
  */
-const ReviewCard = ({ review, onDelete, showDeleteButton = false }) => {
+const ReviewCard = ({
+  review,
+  dealerName,
+  onDelete,
+  showDeleteButton = false,
+  showEditButton = false,
+  onSaveEdit,
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(review?.review || "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setEditText(review?.review || "");
+    }
+  }, [review?.review, isEditing]);
+
   if (!review) return null;
 
-  // Map sentiment to star count and color
   const sentimentMap = {
     positive: { stars: 5, color: "text-yellow-400", bgColor: "bg-yellow-50" },
     neutral: { stars: 3, color: "text-slate-400", bgColor: "bg-slate-50" },
@@ -26,9 +41,28 @@ const ReviewCard = ({ review, onDelete, showDeleteButton = false }) => {
   const sentiment = review.sentiment || "neutral";
   const { stars, color, bgColor } = sentimentMap[sentiment] || sentimentMap.neutral;
 
+  const handleSave = async () => {
+    const trimmed = editText.trim();
+    if (!trimmed || !onSaveEdit) return;
+
+    setSaving(true);
+    try {
+      const success = await onSaveEdit(review.id, trimmed);
+      if (success) {
+        setIsEditing(false);
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditText(review.review || "");
+    setIsEditing(false);
+  };
+
   return (
     <div className={`${bgColor} rounded-lg p-4 border border-slate-200`}>
-      {/* Header: Stars + Car info */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <div className="flex items-center gap-1 mb-1">
@@ -46,25 +80,70 @@ const ReviewCard = ({ review, onDelete, showDeleteButton = false }) => {
           <p className="text-xs text-slate-600 font-medium">
             {review.car_make} {review.car_model} ({review.car_year})
           </p>
+          {dealerName && (
+            <p className="text-xs text-slate-500 mt-1">
+              Dealership: <strong>{dealerName}</strong>
+            </p>
+          )}
         </div>
 
-        {/* Delete button (admin only) */}
-        {showDeleteButton && onDelete && (
-          <button
-            onClick={() => onDelete(review.id)}
-            className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors font-medium"
-          >
-            Delete
-          </button>
+        {(showDeleteButton || showEditButton) && (
+          <div className="ml-2 flex shrink-0 gap-1">
+            {showEditButton && onSaveEdit && !isEditing && (
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="px-2 py-1 text-xs bg-slate-100 text-slate-700 rounded hover:bg-slate-200 transition-colors font-medium"
+              >
+                Edit
+              </button>
+            )}
+            {showDeleteButton && onDelete && !isEditing && (
+              <button
+                type="button"
+                onClick={() => onDelete(review.id)}
+                className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors font-medium"
+              >
+                Delete
+              </button>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Review text */}
-      <p className="text-sm text-slate-800 mb-3 line-clamp-3">{review.review}</p>
+      {isEditing ? (
+        <div className="mb-3">
+          <textarea
+            value={editText}
+            onChange={(event) => setEditText(event.target.value)}
+            rows={4}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+          />
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving || !editText.trim()}
+              className="px-3 py-1 text-xs font-medium rounded bg-brand-primary text-white hover:bg-brand-dark disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={saving}
+              className="px-3 py-1 text-xs font-medium rounded border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-slate-800 mb-3 line-clamp-3">{review.review}</p>
+      )}
 
-      {/* Footer: Author */}
       <div className="text-xs text-slate-600 border-t border-slate-300 pt-2">
-        <strong>{review.author_username || "Anonymous"}</strong>
+        <strong>{review.author_username || review.name || "Anonymous"}</strong>
       </div>
     </div>
   );

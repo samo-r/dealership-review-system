@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
+const sortByRecentId = (items) =>
+  [...items].sort((a, b) => Number(b.id) - Number(a.id));
+
 const AdminOverview = () => {
   const { authHeaders, logout } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -16,6 +19,8 @@ const AdminOverview = () => {
     neutral: 0,
     negative: 0,
   });
+  const [recentDealerships, setRecentDealerships] = useState([]);
+  const [recentUsers, setRecentUsers] = useState([]);
 
   useEffect(() => {
     const loadStats = async () => {
@@ -43,6 +48,11 @@ const AdminOverview = () => {
         }
 
         const dealers = dealersData.dealers || [];
+        const users = usersData.users || [];
+
+        setRecentDealerships(sortByRecentId(dealers).slice(0, 5));
+        setRecentUsers(sortByRecentId(users).slice(0, 5));
+
         const reviewResponses = await Promise.all(
           dealers.map((dealer) =>
             fetch(`${window.location.origin}/djangoapp/reviews/dealer/${dealer.id}`).then(
@@ -63,7 +73,7 @@ const AdminOverview = () => {
 
         setStats({
           dealerships: dealers.length,
-          users: (usersData.users || []).length,
+          users: users.length,
           reviews: allReviews.length,
           pendingSentiment: allReviews.filter((r) => r.sentiment_status === "pending").length,
           failedSentiment: allReviews.filter((r) => r.sentiment_status === "failed").length,
@@ -93,9 +103,9 @@ const AdminOverview = () => {
   const cards = [
     { label: "Dealerships", value: stats.dealerships, to: "/admin/dealerships" },
     { label: "Users", value: stats.users, to: "/admin/users" },
-    { label: "Total Reviews", value: stats.reviews, to: "/reviews" },
-    { label: "Pending Sentiment", value: stats.pendingSentiment, to: "/reviews" },
-    { label: "Failed Sentiment", value: stats.failedSentiment, to: "/reviews" },
+    { label: "Total Reviews", value: stats.reviews, to: "/admin/moderation" },
+    { label: "Pending Sentiment", value: stats.pendingSentiment, to: "/admin/moderation" },
+    { label: "Failed Sentiment", value: stats.failedSentiment, to: "/admin/moderation" },
   ];
 
   return (
@@ -120,7 +130,7 @@ const AdminOverview = () => {
         ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="mb-8 grid gap-4 md:grid-cols-3">
         <div className="rounded-lg bg-white p-5 shadow-md">
           <p className="text-sm text-slate-500">Positive Reviews</p>
           <p className="mt-2 text-2xl font-bold text-green-600">{stats.positive}</p>
@@ -133,6 +143,94 @@ const AdminOverview = () => {
           <p className="text-sm text-slate-500">Negative Reviews</p>
           <p className="mt-2 text-2xl font-bold text-red-600">{stats.negative}</p>
         </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="overflow-hidden rounded-lg bg-white shadow-md">
+          <div className="border-b border-slate-200 px-5 py-4">
+            <h2 className="text-lg font-semibold text-slate-900">Recent Dealerships</h2>
+            <p className="text-sm text-slate-500">Five most recently added dealerships</p>
+          </div>
+          {recentDealerships.length > 0 ? (
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                    Name
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                    Location
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                    ID
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {recentDealerships.map((dealer) => (
+                  <tr key={dealer.id}>
+                    <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                      {dealer.full_name}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600">
+                      {dealer.city}, {dealer.state}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{dealer.id}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="px-5 py-8 text-center text-sm text-slate-500">No dealerships yet.</p>
+          )}
+          <div className="border-t border-slate-200 px-5 py-3">
+            <Link to="/admin/dealerships" className="text-sm font-medium text-brand-primary hover:underline">
+              View all dealerships
+            </Link>
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-lg bg-white shadow-md">
+          <div className="border-b border-slate-200 px-5 py-4">
+            <h2 className="text-lg font-semibold text-slate-900">Recent Users</h2>
+            <p className="text-sm text-slate-500">Five most recently added users</p>
+          </div>
+          {recentUsers.length > 0 ? (
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                    Username
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                    Role
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                    Email
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {recentUsers.map((user) => (
+                  <tr key={user.id}>
+                    <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                      {user.userName}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{user.role}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{user.email || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="px-5 py-8 text-center text-sm text-slate-500">No users yet.</p>
+          )}
+          <div className="border-t border-slate-200 px-5 py-3">
+            <Link to="/admin/users" className="text-sm font-medium text-brand-primary hover:underline">
+              View all users
+            </Link>
+          </div>
+        </section>
       </div>
     </div>
   );

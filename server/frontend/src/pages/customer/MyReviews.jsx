@@ -104,10 +104,10 @@ const MyReviews = () => {
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap gap-2">
             {[
-              { id: "all", label: "All", icon: "📋" },
-              { id: "positive", label: "Positive", icon: "⭐" },
-              { id: "neutral", label: "Neutral", icon: "😐" },
-              { id: "negative", label: "Negative", icon: "👎" },
+              { id: "all", label: "All" },
+              { id: "positive", label: "Positive" },
+              { id: "neutral", label: "Neutral" },
+              { id: "negative", label: "Negative" },
             ].map((filter) => (
               <button
                 key={filter.id}
@@ -118,7 +118,7 @@ const MyReviews = () => {
                     : "bg-slate-200 text-slate-700 hover:bg-slate-300"
                 }`}
               >
-                {filter.icon} {filter.label} ({sentimentCounts[filter.id]})
+                {filter.label} ({sentimentCounts[filter.id]})
               </button>
             ))}
           </div>

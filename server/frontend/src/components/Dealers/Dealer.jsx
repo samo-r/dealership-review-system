@@ -3,7 +3,6 @@ import { Link, useParams } from "react-router-dom";
 import positive_icon from "../assets/positive.png";
 import neutral_icon from "../assets/neutral.png";
 import negative_icon from "../assets/negative.png";
-import review_icon from "../assets/reviewbutton.png";
 import { useAuth } from "../../context/AuthContext";
 import { hasCapability } from "../../utils/roleCapabilities";
 
@@ -84,10 +83,9 @@ const Dealer = () => {
             {canReview && (
               <Link
                 to={`/postreview/${id}`}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark"
+                className="inline-flex items-center justify-center rounded-full bg-brand-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark"
               >
-                <img src={review_icon} alt="Review icon" className="h-5 w-5" />
-                Add review
+                Add Review
               </Link>
             )}
           </div>

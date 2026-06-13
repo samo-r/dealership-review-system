@@ -1,105 +1,211 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+
+const compareObjectIdDesc = (leftId, rightId) => {
+  const left = String(leftId || "");
+  const right = String(rightId || "");
+  if (left === right) return 0;
+  return left > right ? -1 : 1;
+};
 
 const AdminInventory = () => {
   const { authHeaders, logout } = useAuth();
   const [dealers, setDealers] = useState([]);
-  const [selectedDealerId, setSelectedDealerId] = useState("");
-  const [vehicles, setVehicles] = useState([]);
-  const [loadingDealers, setLoadingDealers] = useState(true);
-  const [loadingInventory, setLoadingInventory] = useState(false);
+  const [allVehicles, setAllVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [filterMake, setFilterMake] = useState("all");
+  const [filterYear, setFilterYear] = useState("all");
+  const [filterDealership, setFilterDealership] = useState("all");
 
-  useEffect(() => {
-    const loadDealers = async () => {
-      try {
-        const response = await fetch(`${window.location.origin}/djangoapp/get_dealers`, {
-          headers: { ...authHeaders() },
-        });
+  const loadInventory = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const dealersRes = await fetch(`${window.location.origin}/djangoapp/get_dealers`, {
+        headers: { ...authHeaders() },
+      });
 
-        if (response.status === 401) {
-          logout();
-          return;
-        }
-
-        const data = await response.json();
-        if (data.status === 200 && Array.isArray(data.dealers)) {
-          setDealers(data.dealers);
-          if (data.dealers.length > 0) {
-            setSelectedDealerId(String(data.dealers[0].id));
-          }
-        } else {
-          setError("Unable to load dealerships.");
-        }
-      } catch (fetchError) {
-        console.error("Failed to load dealerships:", fetchError);
-        setError("Unable to load dealerships.");
-      } finally {
-        setLoadingDealers(false);
+      if (dealersRes.status === 401) {
+        logout();
+        return;
       }
-    };
 
-    loadDealers();
+      const dealersData = await dealersRes.json();
+      if (dealersData.status !== 200 || !Array.isArray(dealersData.dealers)) {
+        setError("Unable to load dealerships.");
+        return;
+      }
+
+      const dealershipList = dealersData.dealers;
+      setDealers(dealershipList);
+
+      const dealerNameById = new Map(
+        dealershipList.map((dealer) => [Number(dealer.id), dealer.full_name])
+      );
+
+      const inventoryResponses = await Promise.all(
+        dealershipList.map(async (dealer) => {
+          try {
+            const response = await fetch(
+              `${window.location.origin}/djangoapp/inventory/dealer/${dealer.id}`,
+              { headers: { ...authHeaders() } }
+            );
+
+            if (response.status === 401) {
+              return { unauthorized: true, vehicles: [] };
+            }
+
+            const data = await response.json();
+            if (response.status === 200 && Array.isArray(data.vehicles)) {
+              return { vehicles: data.vehicles };
+            }
+
+            return { vehicles: [] };
+          } catch (fetchError) {
+            console.error(`Failed to load inventory for dealer ${dealer.id}:`, fetchError);
+            return { vehicles: [] };
+          }
+        })
+      );
+
+      if (inventoryResponses.some((result) => result.unauthorized)) {
+        logout();
+        return;
+      }
+
+      const merged = inventoryResponses
+        .flatMap((result) => result.vehicles)
+        .map((vehicle) => ({
+          ...vehicle,
+          dealerName: dealerNameById.get(Number(vehicle.dealer_id)) || "Unknown dealership",
+        }))
+        .sort((a, b) => compareObjectIdDesc(a._id, b._id));
+
+      setAllVehicles(merged);
+    } catch (fetchError) {
+      console.error("Failed to load platform inventory:", fetchError);
+      setError("Unable to load platform inventory.");
+    } finally {
+      setLoading(false);
+    }
   }, [authHeaders, logout]);
 
   useEffect(() => {
-    if (!selectedDealerId) return;
-
-    const loadInventory = async () => {
-      setLoadingInventory(true);
-      setError("");
-      try {
-        const response = await fetch(
-          `${window.location.origin}/djangoapp/inventory/dealer/${selectedDealerId}`,
-          { headers: { ...authHeaders() } }
-        );
-
-        if (response.status === 401) {
-          logout();
-          return;
-        }
-
-        const data = await response.json();
-        if (data.status === 200) {
-          setVehicles(data.vehicles || []);
-        } else {
-          setError(data.error?.message || "Unable to load inventory.");
-        }
-      } catch (fetchError) {
-        console.error("Failed to load inventory:", fetchError);
-        setError("Unable to load inventory.");
-      } finally {
-        setLoadingInventory(false);
-      }
-    };
-
     loadInventory();
-  }, [selectedDealerId, authHeaders, logout]);
+  }, [loadInventory]);
 
-  if (loadingDealers) {
-    return <div className="p-8 text-center text-slate-500">Loading inventory view...</div>;
+  const makeOptions = useMemo(() => {
+    const makes = [...new Set(allVehicles.map((vehicle) => vehicle.make).filter(Boolean))];
+    return makes.sort((a, b) => a.localeCompare(b));
+  }, [allVehicles]);
+
+  const yearOptions = useMemo(() => {
+    const years = [
+      ...new Set(allVehicles.map((vehicle) => Number(vehicle.year)).filter((year) => !Number.isNaN(year))),
+    ];
+    return years.sort((a, b) => b - a);
+  }, [allVehicles]);
+
+  const filteredVehicles = useMemo(() => {
+    return allVehicles.filter((vehicle) => {
+      const makeMatch = filterMake === "all" || vehicle.make === filterMake;
+      const yearMatch =
+        filterYear === "all" || Number(vehicle.year) === Number(filterYear);
+      const dealershipMatch =
+        filterDealership === "all" ||
+        String(vehicle.dealer_id) === String(filterDealership);
+      return makeMatch && yearMatch && dealershipMatch;
+    });
+  }, [allVehicles, filterMake, filterYear, filterDealership]);
+
+  const filtersActive =
+    filterMake !== "all" || filterYear !== "all" || filterDealership !== "all";
+
+  const clearFilters = () => {
+    setFilterMake("all");
+    setFilterYear("all");
+    setFilterDealership("all");
+  };
+
+  if (loading) {
+    return <div className="p-8 text-center text-slate-500">Loading platform inventory...</div>;
   }
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-900">Platform Inventory</h1>
-        <p className="mt-1 text-slate-600">Cross-tenant vehicle listings by dealership.</p>
+        <p className="mt-1 text-slate-600">
+          Cross-tenant vehicle listings across all dealerships.
+        </p>
       </div>
 
-      <div className="mb-4">
-        <label className="mb-1 block text-sm font-medium text-slate-700">Dealership</label>
-        <select
-          value={selectedDealerId}
-          onChange={(event) => setSelectedDealerId(event.target.value)}
-          className="w-full max-w-md rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
-        >
-          {dealers.map((dealer) => (
-            <option key={dealer.id} value={dealer.id}>
-              {dealer.full_name} ({dealer.city}, {dealer.state})
-            </option>
-          ))}
-        </select>
+      <div className="mb-6 rounded-lg bg-white p-4 shadow-md">
+        <div className="grid gap-4 md:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Make</label>
+            <select
+              value={filterMake}
+              onChange={(event) => setFilterMake(event.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            >
+              <option value="all">All Makes</option>
+              {makeOptions.map((make) => (
+                <option key={make} value={make}>
+                  {make}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Year</label>
+            <select
+              value={filterYear}
+              onChange={(event) => setFilterYear(event.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            >
+              <option value="all">All Years</option>
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Dealership</label>
+            <select
+              value={filterDealership}
+              onChange={(event) => setFilterDealership(event.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            >
+              <option value="all">All Dealerships</option>
+              {dealers.map((dealer) => (
+                <option key={dealer.id} value={dealer.id}>
+                  {dealer.full_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {filtersActive && (
+          <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4">
+            <p className="text-sm text-slate-600">
+              Showing {filteredVehicles.length} of {allVehicles.length} vehicles
+            </p>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-sm font-medium text-brand-primary hover:underline"
+            >
+              Clear filters
+            </button>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -108,42 +214,56 @@ const AdminInventory = () => {
         </div>
       )}
 
-      {loadingInventory ? (
-        <div className="text-slate-500">Loading vehicles...</div>
-      ) : (
-        <div className="overflow-hidden rounded-lg bg-white shadow-md">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
+      <div className="overflow-hidden rounded-lg bg-white shadow-md">
+        <table className="min-w-full divide-y divide-slate-200">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                Make
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                Model
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                Body
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                Year
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                Mileage
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                Dealership
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filteredVehicles.length === 0 ? (
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">Make</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">Model</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">Body</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">Year</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">Mileage</th>
+                <td colSpan={6} className="px-4 py-6 text-center text-sm text-slate-500">
+                  {allVehicles.length === 0
+                    ? "No vehicles listed across the platform."
+                    : "No vehicles match the selected filters."}
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {vehicles.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-slate-500">
-                    No vehicles listed for this dealership.
+            ) : (
+              filteredVehicles.map((vehicle) => (
+                <tr key={vehicle._id}>
+                  <td className="px-4 py-3 text-sm text-slate-900">{vehicle.make}</td>
+                  <td className="px-4 py-3 text-sm text-slate-700">{vehicle.model}</td>
+                  <td className="px-4 py-3 text-sm text-slate-700">{vehicle.bodyType}</td>
+                  <td className="px-4 py-3 text-sm text-slate-700">{vehicle.year}</td>
+                  <td className="px-4 py-3 text-sm text-slate-700">{vehicle.mileage}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                    {vehicle.dealerName}
                   </td>
                 </tr>
-              ) : (
-                vehicles.map((vehicle) => (
-                  <tr key={vehicle._id}>
-                    <td className="px-4 py-3 text-sm text-slate-900">{vehicle.make}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{vehicle.model}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{vehicle.bodyType}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{vehicle.year}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{vehicle.mileage}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

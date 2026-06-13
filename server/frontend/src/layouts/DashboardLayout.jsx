@@ -11,11 +11,10 @@ const roleLinks = {
   ],
   ADMIN: [
     { to: "/admin/dashboard", label: "Overview" },
-    { to: "/admin/users/create", label: "Add New User" },
     { to: "/admin/dealerships", label: "Dealerships" },
     { to: "/admin/users", label: "Users" },
     { to: "/admin/inventory", label: "Inventory" },
-    { to: "/reviews", label: "Moderation" },
+    { to: "/admin/moderation", label: "Moderation" },
   ],
 };
 
@@ -75,7 +74,7 @@ const DashboardLayout = () => {
             to="/home"
             className="text-sm text-brand-primary hover:underline"
           >
-            ← Public Site
+            Public Site
           </Link>
         </header>
         <main className="flex-1 overflow-y-auto p-6">

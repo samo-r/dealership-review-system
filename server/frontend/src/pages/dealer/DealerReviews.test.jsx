@@ -88,7 +88,7 @@ describe("Dealer review RBAC behavior", () => {
     );
 
     expect(await screen.findByText(/Sample Dealer/i)).toBeInTheDocument();
-    expect(screen.queryByAltText(/Post Review/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /add review/i })).not.toBeInTheDocument();
   });
 
   it("redirects anonymous add-review attempts to login", async () => {

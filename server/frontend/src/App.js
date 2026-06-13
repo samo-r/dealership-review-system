@@ -33,6 +33,7 @@ import AdminOverview from "./pages/admin/AdminOverview";
 import AdminDealerships from "./pages/admin/AdminDealerships";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminInventory from "./pages/admin/AdminInventory";
+import AdminModeration from "./pages/admin/AdminModeration";
 
 function App() {
   return (
@@ -107,6 +108,7 @@ function App() {
           <Route path="/admin/users/create" element={<CreateUser />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/inventory" element={<AdminInventory />} />
+          <Route path="/admin/moderation" element={<AdminModeration />} />
         </Route>
       </Routes>
     </AuthProvider>
