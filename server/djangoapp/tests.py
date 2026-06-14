@@ -29,7 +29,16 @@ User = get_user_model()
 # Helpers
 # ---------------------------------------------------------------------------
 
-DEALER_STUB = {"id": 1, "full_name": "Test Dealer", "city": "Testville", "state": "TX"}
+DEALER_STUB = {
+    "id": 1,
+    "dealer_id": 1,
+    "name": "Test Dealer",
+    "full_name": "Test Dealer",
+    "district": "Kampala",
+    "city": "Kampala",
+    "physical_address": "Plot 1, Test Road",
+    "address": "Plot 1, Test Road",
+}
 MOCK_DEALERS = [DEALER_STUB]
 MOCK_DEALER = [DEALER_STUB]
 REVIEW_STUB = {
@@ -41,7 +50,13 @@ REVIEW_STUB = {
     "sentiment": "positive",
     "sentiment_status": "completed",
 }
-UPDATE_OK = {"id": 1, "full_name": "Updated"}
+UPDATE_OK = {
+    "id": 1,
+    "dealer_id": 1,
+    "name": "Updated",
+    "full_name": "Updated",
+    "district": "Wakiso",
+}
 
 
 def auth_header(user):
@@ -185,9 +200,12 @@ MOCK_CREATED_DEALERSHIP = {
     "status": 201,
     "dealership": {
         "id": 99,
+        "dealer_id": 99,
+        "name": "Kampala Motors",
         "full_name": "Kampala Motors",
-        "address": "Plot 12, Kampala",
-        "contact_number": "+256700000000",
+        "tin": "1000000099",
+        "district": "Kampala",
+        "physical_address": "Plot 12, Kampala",
         "email": "info@kampala.example",
     },
     "dealership_id": 99,
@@ -209,8 +227,9 @@ class CreateDealershipTests(RbacTestBase):
     def test_admin_can_create_dealership(self, _mock):
         resp = self._post(self.admin, {
             "name": "Kampala Motors",
-            "location": "Plot 12, Kampala",
-            "contactNumber": "+256700000000",
+            "tin": "1000000099",
+            "district": "Kampala",
+            "physical_address": "Plot 12, Kampala",
             "email": "info@kampala.example",
         })
         data = resp.json()
@@ -221,8 +240,9 @@ class CreateDealershipTests(RbacTestBase):
     def test_superuser_can_create_dealership(self, _mock):
         resp = self._post(self.superuser, {
             "name": "Entebbe Autos",
-            "location": "Entebbe Road",
-            "contactNumber": "+256711111111",
+            "tin": "1000000100",
+            "district": "Wakiso",
+            "physical_address": "Entebbe Road",
             "email": "hello@entebbe.example",
         })
         self.assertEqual(resp.status_code, 201)
@@ -230,8 +250,9 @@ class CreateDealershipTests(RbacTestBase):
     def test_customer_cannot_create_dealership(self):
         resp = self._post(self.customer, {
             "name": "Bad Motors",
-            "location": "Nowhere",
-            "contactNumber": "000",
+            "tin": "1000000000",
+            "district": "Nowhere",
+            "physical_address": "Nowhere",
             "email": "bad@example.com",
         })
         self.assertEqual(resp.status_code, 403)
@@ -239,8 +260,9 @@ class CreateDealershipTests(RbacTestBase):
     def test_anonymous_cannot_create_dealership(self):
         resp = self._post(None, {
             "name": "Bad Motors",
-            "location": "Nowhere",
-            "contactNumber": "000",
+            "tin": "1000000000",
+            "district": "Nowhere",
+            "physical_address": "Nowhere",
             "email": "bad@example.com",
         })
         self.assertEqual(resp.status_code, 401)
@@ -729,7 +751,7 @@ class ReviewDeleteTests(RbacTestBase):
 # 8.  Dealership update
 # ---------------------------------------------------------------------------
 
-UPDATE_DEALER_PAYLOAD = {"city": "New City"}
+UPDATE_DEALER_PAYLOAD = {"district": "Wakiso"}
 
 
 class DealershipUpdateTests(RbacTestBase):

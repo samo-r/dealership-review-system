@@ -62,9 +62,6 @@ app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json());
 app.use(require("body-parser").urlencoded({ extended: false }));
 
-const reviews_data = JSON.parse(
-  fs.readFileSync(require("path").join(__dirname, "data", "reviews.json"), "utf8"),
-);
 const dealerships_data = JSON.parse(
   fs.readFileSync(require("path").join(__dirname, "data", "dealerships.json"), "utf8"),
 );
@@ -72,6 +69,11 @@ const dealerships_data = JSON.parse(
 const Reviews = require("./review");
 const Dealerships = require("./dealership");
 const Inventory = require("./inventory");
+const {
+  formatDealershipForApi,
+  mapSeedDealership,
+  mapLegacyUpdatePayload,
+} = require("./utils/dealershipApi");
 const {
   validateEncryptionKey,
   encryptChassis,
@@ -122,8 +124,10 @@ const getNextDealershipId = async () => {
 };
 
 const syncDealershipCounter = async () => {
-  const maxDealer = await Dealerships.findOne().sort({ id: -1 }).select({ id: 1 });
-  const maxDealerId = maxDealer ? maxDealer.id : 0;
+  const maxDealer = await Dealerships.findOne()
+    .sort({ dealer_id: -1 })
+    .select({ dealer_id: 1 });
+  const maxDealerId = maxDealer ? maxDealer.dealer_id : 0;
 
   await Counter.updateOne(
     { _id: "dealerships" },
@@ -140,41 +144,40 @@ const validateDealershipPayload = (data) => {
   }
 
   const name = typeof data.name === "string" ? data.name.trim() : "";
-  const location = typeof data.location === "string" ? data.location.trim() : "";
-  const contactNumber =
-    typeof data.contact_number === "string" ? data.contact_number.trim() : "";
+  const tin = typeof data.tin === "string" ? data.tin.trim() : "";
+  const district = typeof data.district === "string" ? data.district.trim() : "";
+  const physicalAddress =
+    typeof data.physical_address === "string"
+      ? data.physical_address.trim()
+      : typeof data.location === "string"
+      ? data.location.trim()
+      : "";
   const email = typeof data.email === "string" ? data.email.trim() : "";
 
   if (!name) {
     return { valid: false, message: "Field 'name' is required." };
   }
-  if (!location) {
-    return { valid: false, message: "Field 'location' is required." };
+  if (!tin) {
+    return { valid: false, message: "Field 'tin' is required." };
   }
-  if (!contactNumber) {
-    return { valid: false, message: "Field 'contact_number' is required." };
+  if (!district) {
+    return { valid: false, message: "Field 'district' is required." };
+  }
+  if (!physicalAddress) {
+    return { valid: false, message: "Field 'physical_address' is required." };
   }
   if (!email) {
     return { valid: false, message: "Field 'email' is required." };
   }
 
-  const shortName = name.split(/\s+/).slice(0, 2).join(" ");
-
   return {
     valid: true,
     dealership: {
       name,
-      location,
-      contact_number: contactNumber,
+      tin,
+      district,
+      physical_address: physicalAddress,
       email,
-      full_name: name,
-      short_name: shortName,
-      address: location,
-      city: location,
-      state: "Uganda",
-      zip: "00000",
-      lat: "0",
-      long: "0",
     },
   };
 };
@@ -211,10 +214,11 @@ const validateReviewPayload = (data) => {
   }
 
   const carYear = Number(data.car_year);
-  if (!Number.isInteger(carYear) || carYear < 1886) {
+  const hasCarYear = data.car_year !== undefined && data.car_year !== null && data.car_year !== "";
+  if (hasCarYear && (!Number.isInteger(carYear) || carYear < 1886)) {
     return {
       valid: false,
-      message: "Field 'car_year' is required.",
+      message: "Field 'car_year' must be a valid year when provided.",
     };
   }
 
@@ -250,9 +254,7 @@ const validateReviewPayload = (data) => {
     authorUsername = data.author_username.trim();
   }
 
-  return {
-    valid: true,
-    normalized: {
+  const normalized = {
       name: data.name.trim(),
       dealership,
       review: data.review.trim(),
@@ -260,10 +262,17 @@ const validateReviewPayload = (data) => {
       purchase_date: data.purchase_date.trim(),
       car_make: data.car_make.trim(),
       car_model: data.car_model.trim(),
-      car_year: carYear,
       author_id: authorId,
       author_username: authorUsername,
-    },
+    };
+
+  if (hasCarYear) {
+    normalized.car_year = carYear;
+  }
+
+  return {
+    valid: true,
+    normalized,
   };
 };
 
@@ -354,31 +363,59 @@ const sendError = (res, status, code, message, details = undefined) => {
   return res.status(status).json(payload);
 };
 
-// Step 3.3: Enforce id uniqueness at database level for seeded and runtime writes.
 const ensureDatabaseIndexes = async () => {
-  await Reviews.collection.createIndex({ id: 1 }, { unique: true });
-  await Dealerships.collection.createIndex({ id: 1 }, { unique: true });
-  console.log("[bootstrap] Ensured unique indexes on reviews.id and dealerships.id");
-};
-
-// Seed helper used during startup only when seeding is enabled.
-// Keeps startup idempotent by inserting data only if collections are empty.
-const seedDatabase = async () => {
-  const reviewsCount = await Reviews.countDocuments();
-  const dealershipsCount = await Dealerships.countDocuments();
-
-  if (reviewsCount === 0) {
-    await Reviews.insertMany(reviews_data.reviews);
-    console.log(`Seeded ${reviews_data.reviews.length} review documents.`);
-  } else {
-    console.log("Reviews collection already has data; skipping seed.");
+  try {
+    const dealershipIndexes = await Dealerships.collection.indexes();
+    const legacyIdIndex = dealershipIndexes.find(
+      (index) => index.key && index.key.id === 1 && index.name !== "_id_",
+    );
+    if (legacyIdIndex) {
+      await Dealerships.collection.dropIndex(legacyIdIndex.name);
+      console.log(`[bootstrap] Dropped legacy dealerships index: ${legacyIdIndex.name}`);
+    }
+  } catch (err) {
+    if (err.code !== 26 && err.codeName !== "NamespaceNotFound") {
+      throw err;
+    }
   }
 
-  if (dealershipsCount === 0) {
-    await Dealerships.insertMany(dealerships_data.dealerships);
-    console.log(`Seeded ${dealerships_data.dealerships.length} dealership documents.`);
-  } else {
-    console.log("Dealerships collection already has data; skipping seed.");
+  await Reviews.collection.createIndex({ id: 1 }, { unique: true });
+  await Dealerships.collection.createIndex({ dealer_id: 1 }, { unique: true });
+  await Dealerships.collection.createIndex({ tin: 1 }, { unique: true });
+  console.log(
+    "[bootstrap] Ensured unique indexes on reviews.id, dealerships.dealer_id, and dealerships.tin",
+  );
+};
+
+const resetDatabase = async () => {
+  await Promise.all([
+    Reviews.deleteMany({}),
+    Dealerships.deleteMany({}),
+    Inventory.deleteMany({}),
+    Counter.deleteMany({}),
+  ]);
+  console.log("[bootstrap] Cleared reviews, dealerships, inventory, and counters.");
+};
+
+const seedDatabase = async () => {
+  await resetDatabase();
+
+  const dealershipRecords = (dealerships_data.dealerships || []).map(mapSeedDealership);
+  if (dealershipRecords.length > 0) {
+    await Dealerships.insertMany(dealershipRecords);
+    console.log(`Seeded ${dealershipRecords.length} Ugandan dealership documents.`);
+  }
+
+  const maxDealerId = dealershipRecords.reduce(
+    (max, record) => Math.max(max, Number(record.dealer_id) || 0),
+    0,
+  );
+  if (maxDealerId > 0) {
+    await Counter.updateOne(
+      { _id: "dealerships" },
+      { $set: { seq: maxDealerId } },
+      { upsert: true },
+    );
   }
 };
 
@@ -502,24 +539,25 @@ app.get("/fetchReviews/dealer/:id", async (req, res) => {
 // Express route to fetch all dealerships
 app.get("/fetchDealers", async (req, res) => {
   try {
-    const documents = await Dealerships.find();
-    res.json(documents);
+    const documents = await Dealerships.find().sort({ dealer_id: 1 });
+    res.json(documents.map(formatDealershipForApi));
   } catch (error) {
     sendError(res, 500, "FETCH_DEALERS_FAILED", "Failed to fetch dealers.");
   }
 });
 
-// Express route to fetch Dealers by a particular state
+// Express route to fetch Dealers by district (legacy path segment kept as :state)
 app.get("/fetchDealers/:state", async (req, res) => {
   try {
-    const documents = await Dealerships.find({ state: req.params.state });
-    res.json(documents);
+    const district = req.params.state;
+    const documents = await Dealerships.find({ district }).sort({ dealer_id: 1 });
+    res.json(documents.map(formatDealershipForApi));
   } catch (error) {
     sendError(
       res,
       500,
       "FETCH_DEALERS_BY_STATE_FAILED",
-      "Failed to fetch dealers by state.",
+      "Failed to fetch dealers by district.",
     );
   }
 });
@@ -537,7 +575,7 @@ app.get("/fetchDealer/:id", async (req, res) => {
   }
 
   try {
-    const documents = await Dealerships.find({ id: dealerId });
+    const documents = await Dealerships.find({ dealer_id: dealerId });
     if (!documents || documents.length === 0) {
       return sendError(
         res,
@@ -547,7 +585,7 @@ app.get("/fetchDealer/:id", async (req, res) => {
       );
     }
 
-    return res.json(documents);
+    return res.json(documents.map(formatDealershipForApi));
   } catch (error) {
     return sendError(
       res,
@@ -568,7 +606,7 @@ app.post("/insertDealer", async (req, res) => {
   try {
     const nextId = await getNextDealershipId();
     const payload = {
-      id: nextId,
+      dealer_id: nextId,
       ...validation.dealership,
     };
 
@@ -576,12 +614,17 @@ app.post("/insertDealer", async (req, res) => {
     return res.status(201).json({
       status: 201,
       message: "Dealership created.",
-      dealership: created,
-      dealership_id: created.id,
+      dealership: formatDealershipForApi(created),
+      dealership_id: created.dealer_id,
     });
   } catch (error) {
     if (error.code === 11000) {
-      return sendError(res, 409, "DUPLICATE_DEALERSHIP_ID", "Dealership id conflict.");
+      return sendError(
+        res,
+        409,
+        "DUPLICATE_DEALERSHIP",
+        "A dealership with this dealer_id or tin already exists.",
+      );
     }
     return sendError(res, 500, "INSERT_DEALER_FAILED", "Failed to create dealership.");
   }
@@ -599,24 +642,7 @@ app.put("/updateDealer/:id", async (req, res) => {
     );
   }
 
-  const allowedFields = [
-    "city",
-    "state",
-    "address",
-    "zip",
-    "lat",
-    "long",
-    "short_name",
-    "full_name",
-    "contact_number",
-    "email",
-  ];
-  const updates = {};
-  for (const field of allowedFields) {
-    if (req.body[field] !== undefined) {
-      updates[field] = req.body[field];
-    }
-  }
+  const updates = mapLegacyUpdatePayload(req.body);
 
   if (Object.keys(updates).length === 0) {
     return sendError(
@@ -629,15 +655,23 @@ app.put("/updateDealer/:id", async (req, res) => {
 
   try {
     const updated = await Dealerships.findOneAndUpdate(
-      { id: dealerId },
+      { dealer_id: dealerId },
       { $set: updates },
       { new: true, runValidators: true },
     );
     if (!updated) {
       return sendError(res, 404, "DEALER_NOT_FOUND", "Dealer not found.");
     }
-    return res.json(updated);
+    return res.json(formatDealershipForApi(updated));
   } catch (error) {
+    if (error.code === 11000) {
+      return sendError(
+        res,
+        409,
+        "DUPLICATE_DEALERSHIP",
+        "A dealership with this tin already exists.",
+      );
+    }
     return sendError(
       res,
       500,
@@ -660,7 +694,7 @@ app.post("/insert_review", async (req, res) => {
   }
 
   const data = validation.normalized;
-  const dealershipExists = await Dealerships.exists({ id: data.dealership });
+  const dealershipExists = await Dealerships.exists({ dealer_id: data.dealership });
   if (!dealershipExists) {
     return sendError(
       res,
@@ -957,7 +991,9 @@ app.post("/addInventory", async (req, res) => {
     return sendError(res, 400, "INVALID_INVENTORY_PAYLOAD", validation.message);
   }
 
-  const dealerExists = await Dealerships.exists({ id: Number(req.body.dealer_id) });
+  const dealerExists = await Dealerships.exists({
+    dealer_id: Number(req.body.dealer_id),
+  });
   if (!dealerExists) {
     return sendError(res, 404, "DEALERSHIP_NOT_FOUND", "Cannot add inventory for a dealership that does not exist.");
   }
@@ -1109,13 +1145,14 @@ const startServer = async () => {
     console.log(`Connected to MongoDB database: ${DB_NAME}`);
     validateEncryptionKey();
     console.log("[bootstrap] Chassis encryption key validated.");
-    await ensureDatabaseIndexes();
 
     if (SEED_ON_START) {
       console.log("[bootstrap] Seeding enabled. Running seed process...");
       await seedDatabase();
       console.log("Database seed completed.");
+      await ensureDatabaseIndexes();
     } else {
+      await ensureDatabaseIndexes();
       console.log("[bootstrap] Seeding disabled. Skipping seed process.");
     }
 

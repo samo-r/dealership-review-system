@@ -100,9 +100,9 @@ const DealerOverview = () => {
           <div className="flex justify-between items-start">
             <div>
               <h2 className="text-2xl font-bold text-slate-900">
-                {dealership.full_name}
+                {dealership.name || dealership.full_name}
               </h2>
-              <p className="text-slate-600 mt-1">{dealership.short_name}</p>
+              <p className="text-slate-600 mt-1">{dealership.district || dealership.city}</p>
             </div>
             <Link
               to="/dealer/profile"
@@ -117,14 +117,16 @@ const DealerOverview = () => {
               <p className="text-sm text-slate-500 uppercase tracking-wide">
                 Address
               </p>
-              <p className="text-slate-900 font-medium">{dealership.address}</p>
+              <p className="text-slate-900 font-medium">
+                {dealership.physical_address || dealership.address}
+              </p>
             </div>
             <div>
               <p className="text-sm text-slate-500 uppercase tracking-wide">
-                City
+                District
               </p>
               <p className="text-slate-900 font-medium">
-                {dealership.city}, {dealership.state} {dealership.zip}
+                {dealership.district || dealership.city}
               </p>
             </div>
           </div>

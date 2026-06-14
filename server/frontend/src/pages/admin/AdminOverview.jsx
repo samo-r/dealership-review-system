@@ -170,10 +170,10 @@ const AdminOverview = () => {
                 {recentDealerships.map((dealer) => (
                   <tr key={dealer.id}>
                     <td className="px-4 py-3 text-sm font-medium text-slate-900">
-                      {dealer.full_name}
+                      {dealer.name || dealer.full_name}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {dealer.city}, {dealer.state}
+                      {dealer.district || dealer.city}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{dealer.id}</td>
                   </tr>

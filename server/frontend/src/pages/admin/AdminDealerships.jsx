@@ -63,18 +63,25 @@ const AdminDealerships = () => {
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">ID</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">Name</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">Location</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">Actions</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">District</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">Address</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">Email</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {dealers.map((dealer) => (
               <tr key={dealer.id}>
                 <td className="px-4 py-3 text-sm text-slate-700">{dealer.id}</td>
-                <td className="px-4 py-3 text-sm font-medium text-slate-900">{dealer.full_name}</td>
-                <td className="px-4 py-3 text-sm text-slate-600">
-                  {dealer.city}, {dealer.state}
+                <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                  {dealer.name || dealer.full_name}
                 </td>
+                <td className="px-4 py-3 text-sm text-slate-600">
+                  {dealer.district || dealer.city}
+                </td>
+                <td className="px-4 py-3 text-sm text-slate-600">
+                  {dealer.physical_address || dealer.address}
+                </td>
+                <td className="px-4 py-3 text-sm text-slate-600">{dealer.email}</td>
                 <td className="px-4 py-3 text-sm">
                   <Link to={`/dealer/${dealer.id}`} className="text-brand-primary hover:underline">
                     View public page

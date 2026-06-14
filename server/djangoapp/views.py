@@ -240,6 +240,11 @@ def upstream_error_response(payload):
     http_status = payload.get("status", 502)
     inner = payload.get("error", {})
     message = inner.get("message", "An upstream service error occurred.")
+    details = inner.get("details")
+    if isinstance(details, dict):
+        detail_message = details.get("error", {}).get("message") or details.get("message")
+        if detail_message:
+            message = detail_message
     service = inner.get("service", "upstream")
     code = service.upper().replace("-", "_") + "_ERROR"
     return api_error(http_status, code, message)
@@ -445,21 +450,25 @@ def create_dealership(request):
         return api_error(400, "INVALID_JSON", "Invalid JSON body")
 
     name = (data.get("name") or "").strip()
-    location = (data.get("location") or "").strip()
-    contact_number = (data.get("contactNumber") or data.get("contact_number") or "").strip()
+    tin = (data.get("tin") or "").strip()
+    district = (data.get("district") or "").strip()
+    physical_address = (
+        (data.get("physical_address") or data.get("location") or "").strip()
+    )
     email = (data.get("email") or "").strip()
 
-    if not name or not location or not contact_number or not email:
+    if not name or not tin or not district or not physical_address or not email:
         return api_error(
             400,
             "MISSING_FIELDS",
-            "name, location, contactNumber, and email are required",
+            "name, tin, district, physical_address, and email are required",
         )
 
     payload = {
         "name": name,
-        "location": location,
-        "contact_number": contact_number,
+        "tin": tin,
+        "district": district,
+        "physical_address": physical_address,
         "email": email,
     }
 
@@ -470,7 +479,7 @@ def create_dealership(request):
     dealership = result.get("dealership") if isinstance(result, dict) else None
     dealership_id = result.get("dealership_id") if isinstance(result, dict) else None
     if dealership_id is None and isinstance(dealership, dict):
-        dealership_id = dealership.get("id")
+        dealership_id = dealership.get("dealer_id") or dealership.get("id")
 
     return JsonResponse(
         {
@@ -564,7 +573,7 @@ def get_my_reviews(request):
     for dealer in dealerships or []:
         dealer_id = dealer.get("id")
         if dealer_id is not None:
-            dealer_name_by_id[str(dealer_id)] = dealer.get("full_name", "")
+            dealer_name_by_id[str(dealer_id)] = dealer.get("name") or dealer.get("full_name", "")
 
     all_reviews = []
     seen_ids = set()
@@ -632,16 +641,15 @@ def update_dealership(request, dealer_id):
     # Strip fields that are not part of the dealership schema to avoid
     # accidental overwrites of id or other non-updatable fields.
     UPDATABLE_FIELDS = {
-        "city",
-        "state",
-        "address",
-        "zip",
-        "lat",
-        "long",
-        "short_name",
-        "full_name",
-        "contact_number",
+        "name",
+        "tin",
+        "district",
+        "physical_address",
         "email",
+        # Legacy aliases accepted from older clients.
+        "full_name",
+        "city",
+        "address",
     }
     payload = {k: v for k, v in data.items() if k in UPDATABLE_FIELDS}
 
@@ -818,6 +826,36 @@ def get_dealer_inventory(request, dealer_id):
     if is_upstream_error(vehicles):
         return upstream_error_response(vehicles)
     return JsonResponse({"status": 200, "vehicles": vehicles})
+
+
+def get_dealer_inventory_options(request, dealer_id):
+    """Unique make/model pairs from dealer inventory for the review form."""
+    _, error_response = require_capability(request, "review.create")
+    if error_response is not None:
+        return error_response
+
+    vehicles = get_request("/fetchInventory/dealer/" + str(dealer_id))
+    if is_upstream_error(vehicles):
+        return upstream_error_response(vehicles)
+
+    if not isinstance(vehicles, list):
+        vehicles = []
+
+    seen = set()
+    options = []
+    for vehicle in vehicles:
+        make = str(vehicle.get("make") or "").strip()
+        model = str(vehicle.get("model") or "").strip()
+        if not make or not model:
+            continue
+        key = (make.lower(), model.lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        options.append({"make": make, "model": model})
+
+    options.sort(key=lambda entry: (entry["make"].lower(), entry["model"].lower()))
+    return JsonResponse({"status": 200, "options": options})
 
 
 # Add a vehicle to inventory

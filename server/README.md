@@ -287,7 +287,7 @@ Use your own secure values for each variable. The tables below list **names only
 | `MONGODB_URI_DOCKER` | MongoDB connection string (Docker Compose) |
 | `DB_NAME` | Database name |
 | `CORS_ORIGIN` | Allowed CORS origin |
-| `SEED_ON_START` | Whether to seed data on startup |
+| `SEED_ON_START` | When `true`, clears MongoDB reviews/dealerships/inventory/counters on startup and reseeds dealerships from `data/dealerships.json` only |
 | `INTERNAL_API_KEY` | Shared secret for internal sentiment patch route (worker use) |
 | `REDIS_URL` | Redis connection string (worker + optional local Django publish) |
 | `SENTIMENT_QUEUE_NAME` | (Optional) Queue name, default `review_sentiment_queue` |

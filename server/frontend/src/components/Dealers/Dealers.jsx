@@ -6,9 +6,9 @@ import { useAuth } from "../../context/AuthContext";
 const Dealers = () => {
   const [dealersList, setDealersList] = useState([]);
   const [allDealers, setAllDealers] = useState([]);
-  const [states, setStates] = useState([]);
+  const [districts, setDistricts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedState, setSelectedState] = useState("");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
   const [loading, setLoading] = useState(true);
 
   const { user, role } = useAuth();
@@ -26,8 +26,10 @@ const Dealers = () => {
           setDealersList(dealers);
 
           // Extract unique states
-          const uniqueStates = Array.from(new Set(dealers.map((d) => d.state)));
-          setStates(uniqueStates);
+          const uniqueDistricts = Array.from(
+            new Set(dealers.map((d) => d.district || d.city).filter(Boolean))
+          );
+          setDistricts(uniqueDistricts);
         }
       } catch (err) {
         console.error("Error fetching dealers:", err);
@@ -44,21 +46,23 @@ const Dealers = () => {
     let filtered = allDealers;
 
     // Filter by state
-    if (selectedState && selectedState !== "All") {
-      filtered = filtered.filter((d) => d.state === selectedState);
-    }
-
-    // Filter by search term
-    if (searchTerm) {
+    if (selectedDistrict && selectedDistrict !== "All") {
       filtered = filtered.filter(
-        (d) =>
-          d.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          d.city.toLowerCase().includes(searchTerm.toLowerCase())
+        (d) => (d.district || d.city) === selectedDistrict
       );
     }
 
+    if (searchTerm) {
+      filtered = filtered.filter((d) => {
+        const name = (d.name || d.full_name || "").toLowerCase();
+        const district = (d.district || d.city || "").toLowerCase();
+        const query = searchTerm.toLowerCase();
+        return name.includes(query) || district.includes(query);
+      });
+    }
+
     setDealersList(filtered);
-  }, [searchTerm, selectedState, allDealers]);
+  }, [searchTerm, selectedDistrict, allDealers]);
 
   return (
     <div className="w-full">
@@ -81,7 +85,7 @@ const Dealers = () => {
             {/* Search input */}
             <div className="flex-1">
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Search by name or city
+                Search by name or district
               </label>
               <input
                 type="text"
@@ -95,17 +99,17 @@ const Dealers = () => {
             {/* State filter */}
             <div className="w-full md:w-48">
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Filter by state
+                Filter by district
               </label>
               <select
-                value={selectedState}
-                onChange={(e) => setSelectedState(e.target.value)}
+                value={selectedDistrict}
+                onChange={(e) => setSelectedDistrict(e.target.value)}
                 className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               >
-                <option value="">All States</option>
-                {states.map((state) => (
-                  <option key={state} value={state}>
-                    {state}
+                <option value="">All Districts</option>
+                {districts.map((district) => (
+                  <option key={district} value={district}>
+                    {district}
                   </option>
                 ))}
               </select>
@@ -152,7 +156,7 @@ const Dealers = () => {
               <button
                 onClick={() => {
                   setSearchTerm("");
-                  setSelectedState("");
+                  setSelectedDistrict("");
                 }}
                 className="mt-4 inline-flex rounded-full bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark"
               >

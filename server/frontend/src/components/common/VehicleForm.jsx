@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import PasswordInput from "./PasswordInput";
 
 const BODY_TYPES = ["Sedan", "SUV", "Truck", "Coupe", "Hatchback", "Van", "Other"];
 
@@ -103,7 +104,7 @@ const VehicleForm = ({
             <option value="">Select a dealership...</option>
             {dealerships.map((dealer) => (
               <option key={dealer.id} value={dealer.id}>
-                {dealer.full_name} ({dealer.city}, {dealer.state})
+                {dealer.name || dealer.full_name} ({dealer.district || dealer.city})
               </option>
             ))}
           </select>
@@ -219,16 +220,16 @@ const VehicleForm = ({
         <label className="block text-sm font-medium text-slate-700 mb-1">
           Chassis Number {isEdit ? "(optional)" : "*"}
         </label>
-        <input
-          type="password"
+        <PasswordInput
           name="chassis_number"
           placeholder={isEdit ? "Leave blank to keep existing" : "Enter chassis number"}
           value={formData.chassis_number}
           onChange={handleChange}
           autoComplete="off"
-          className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary ${
-            errors.chassis_number ? "border-red-500" : "border-slate-300"
-          }`}
+          hasError={Boolean(errors.chassis_number)}
+          showToggleLabel="Show chassis number"
+          hideToggleLabel="Hide chassis number"
+          inputClassName="w-full px-3 py-2 pr-12 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary border-slate-300"
         />
         {errors.chassis_number && (
           <p className="text-red-600 text-xs mt-1">{errors.chassis_number}</p>

@@ -71,6 +71,11 @@ urlpatterns = [
         name="get_dealer_inventory",
     ),
     path(
+        route="inventory/dealer/<int:dealer_id>/options",
+        view=views.get_dealer_inventory_options,
+        name="get_dealer_inventory_options",
+    ),
+    path(
         route="inventory/add",
         view=views.add_inventory,
         name="add_inventory",

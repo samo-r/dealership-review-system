@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import PasswordInput from "../common/PasswordInput";
 
 const PostReview = () => {
   const { user, token, authHeaders, logout } = useAuth();
@@ -9,37 +10,49 @@ const PostReview = () => {
 
   const [dealer, setDealer] = useState(null);
   const [review, setReview] = useState("");
-  const [model, setModel] = useState("");
-  const [year, setYear] = useState("");
+  const [carMake, setCarMake] = useState("");
+  const [carModel, setCarModel] = useState("");
   const [date, setDate] = useState("");
   const [chassisNumber, setChassisNumber] = useState("");
-  const [carModels, setCarModels] = useState([]);
+  const [inventoryOptions, setInventoryOptions] = useState([]);
+  const [inventoryLoading, setInventoryLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+
+  const makeOptions = useMemo(() => {
+    const makes = [...new Set(inventoryOptions.map((entry) => entry.make).filter(Boolean))];
+    return makes.sort((a, b) => a.localeCompare(b));
+  }, [inventoryOptions]);
+
+  const modelOptions = useMemo(() => {
+    return inventoryOptions
+      .filter((entry) => entry.make === carMake)
+      .map((entry) => entry.model)
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
+  }, [inventoryOptions, carMake]);
 
   const postReview = async () => {
     if (!token) {
       return navigate("/login", { replace: true });
     }
 
-    if (!model || !review || !date || !year || !chassisNumber.trim()) {
+    if (!carMake || !carModel || !review || !date || !chassisNumber.trim()) {
       setError("All details are mandatory, including chassis verification.");
       return;
     }
 
     setError(null);
 
-    const [makeChosen, modelChosen] = model.split(" ");
     const payload = {
       name: user?.userName || "Anonymous",
       dealership: id,
       review,
       purchase: true,
       purchase_date: date,
-      car_make: makeChosen,
-      car_model: modelChosen,
-      car_year: year,
+      car_make: carMake,
+      car_model: carModel,
       chassis_number: chassisNumber.trim(),
     };
 
@@ -88,19 +101,42 @@ const PostReview = () => {
       }
     };
 
-    const fetchCarModels = async () => {
+    const fetchInventoryOptions = async () => {
+      if (!token) {
+        setInventoryOptions([]);
+        setInventoryLoading(false);
+        return;
+      }
+
+      setInventoryLoading(true);
       try {
-        const res = await fetch(`/djangoapp/get_cars`);
+        const res = await fetch(`/djangoapp/inventory/dealer/${id}/options`, {
+          headers: authHeaders(),
+        });
+
+        if (res.status === 401) {
+          logout();
+          navigate("/login", { replace: true });
+          return;
+        }
+
         const data = await res.json();
-        setCarModels(Array.isArray(data.CarModels) ? data.CarModels : []);
-      } catch (error) {
-        console.error("Error loading car models:", error);
+        if (data.status === 200 && Array.isArray(data.options)) {
+          setInventoryOptions(data.options);
+        } else {
+          setInventoryOptions([]);
+        }
+      } catch (fetchError) {
+        console.error("Error loading dealership inventory:", fetchError);
+        setInventoryOptions([]);
+      } finally {
+        setInventoryLoading(false);
       }
     };
 
     fetchDealer();
-    fetchCarModels();
-  }, [id]);
+    fetchInventoryOptions();
+  }, [id, token]);
 
   return (
     <div className="w-full py-10">
@@ -135,64 +171,91 @@ const PostReview = () => {
             />
           </div>
 
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Purchase Date</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+            />
+          </div>
+
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Purchase Date</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
-              />
+              <label className="mb-2 block text-sm font-medium text-slate-700">Car Make</label>
+              <select
+                value={carMake}
+                onChange={(e) => {
+                  setCarMake(e.target.value);
+                  setCarModel("");
+                }}
+                disabled={inventoryLoading || makeOptions.length === 0}
+                className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100"
+              >
+                <option value="" disabled>
+                  {inventoryLoading
+                    ? "Loading inventory..."
+                    : makeOptions.length === 0
+                      ? "No vehicles in inventory"
+                      : "Choose car make"}
+                </option>
+                {makeOptions.map((make) => (
+                  <option key={make} value={make}>
+                    {make}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Car year</label>
-              <input
-                type="number"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                min={2015}
-                max={2026}
-                className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
-                placeholder="2024"
-              />
+              <label className="mb-2 block text-sm font-medium text-slate-700">Car Model</label>
+              <select
+                value={carModel}
+                onChange={(e) => setCarModel(e.target.value)}
+                disabled={inventoryLoading || !carMake || modelOptions.length === 0}
+                className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100"
+              >
+                <option value="" disabled>
+                  {inventoryLoading
+                    ? "Loading inventory..."
+                    : !carMake
+                      ? "Select make first"
+                      : modelOptions.length === 0
+                        ? "No models for this make"
+                        : "Choose car model"}
+                </option>
+                {modelOptions.map((model) => (
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
+
+          {!inventoryLoading && inventoryOptions.length === 0 && token && (
+            <p className="text-sm text-amber-700">
+              This dealership has no inventory yet. A dealer admin must add vehicles before you can
+              select a make and model for your review.
+            </p>
+          )}
 
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
               Verify Purchase — Chassis Number *
             </label>
-            <input
-              type="password"
+            <PasswordInput
               value={chassisNumber}
               onChange={(e) => setChassisNumber(e.target.value)}
               autoComplete="off"
-              className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               placeholder="Enter your vehicle chassis number"
+              showToggleLabel="Show chassis number"
+              hideToggleLabel="Hide chassis number"
             />
             <p className="mt-2 text-xs text-slate-500">
               Your review is only saved after your purchase is verified against dealership inventory.
             </p>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Car make and model</label>
-            <select
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
-            >
-              <option value="" disabled>
-                Choose car make and model
-              </option>
-              {carModels.map((carModel) => (
-                <option key={`${carModel.CarMake}-${carModel.CarModel}`} value={`${carModel.CarMake} ${carModel.CarModel}`}>
-                  {carModel.CarMake} {carModel.CarModel}
-                </option>
-              ))}
-            </select>
           </div>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

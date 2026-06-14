@@ -2,10 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { hasCapability } from "../../utils/roleCapabilities";
 
-/**
- * Dealer Profile — edit dealership information
- * DEALER_ADMIN can only edit their own assigned dealership
- */
 const DealerProfile = () => {
   const { user, authHeaders, role } = useAuth();
   const dealerId = user?.assignedDealerId;
@@ -13,12 +9,10 @@ const DealerProfile = () => {
 
   const [dealership, setDealership] = useState(null);
   const [formData, setFormData] = useState({
-    full_name: "",
-    short_name: "",
-    address: "",
-    city: "",
-    state: "",
-    zip: "",
+    name: "",
+    district: "",
+    physical_address: "",
+    email: "",
   });
 
   const [loading, setLoading] = useState(true);
@@ -27,7 +21,6 @@ const DealerProfile = () => {
   const [success, setSuccess] = useState(null);
   const [errors, setErrors] = useState({});
 
-  // Fetch current dealership info
   useEffect(() => {
     if (!dealerId) {
       setError("No assigned dealership found");
@@ -41,16 +34,15 @@ const DealerProfile = () => {
           `${window.location.origin}/djangoapp/dealer/${dealerId}`
         );
         const data = await res.json();
+        const dealer = Array.isArray(data.dealer) ? data.dealer[0] : data.dealer;
 
-        if (data.status === 200 && data.dealer) {
-          setDealership(data.dealer);
+        if (data.status === 200 && dealer) {
+          setDealership(dealer);
           setFormData({
-            full_name: data.dealer.full_name || "",
-            short_name: data.dealer.short_name || "",
-            address: data.dealer.address || "",
-            city: data.dealer.city || "",
-            state: data.dealer.state || "",
-            zip: data.dealer.zip || "",
+            name: dealer.name || dealer.full_name || "",
+            district: dealer.district || dealer.city || "",
+            physical_address: dealer.physical_address || dealer.address || "",
+            email: dealer.email || "",
           });
         } else {
           setError("Failed to load dealership information");
@@ -66,37 +58,30 @@ const DealerProfile = () => {
     fetchDealership();
   }, [dealerId]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error for this field
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((previous) => ({ ...previous, [name]: value }));
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: null }));
+      setErrors((previous) => ({ ...previous, [name]: null }));
     }
   };
 
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.full_name.trim())
-      newErrors.full_name = "Full name is required.";
-    if (!formData.short_name.trim())
-      newErrors.short_name = "Short name is required.";
-    if (!formData.address.trim())
-      newErrors.address = "Address is required.";
-    if (!formData.city.trim())
-      newErrors.city = "City is required.";
-    if (!formData.state.trim())
-      newErrors.state = "State is required.";
-    if (!formData.zip.trim())
-      newErrors.zip = "ZIP code is required.";
+    if (!formData.name.trim()) newErrors.name = "Name is required.";
+    if (!formData.district.trim()) newErrors.district = "District is required.";
+    if (!formData.physical_address.trim()) {
+      newErrors.physical_address = "Physical address is required.";
+    }
+    if (!formData.email.trim()) newErrors.email = "Email is required.";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     if (!validate()) return;
 
     setSubmitting(true);
@@ -120,17 +105,12 @@ const DealerProfile = () => {
 
       if (data.status === 200) {
         setSuccess("Dealership information updated successfully!");
-        // Update local dealership state
         if (data.dealer) {
           setDealership(data.dealer);
         }
-        // Clear success message after 3 seconds
         setTimeout(() => setSuccess(null), 3000);
       } else {
-        setError(
-          data.error?.message ||
-            "Failed to update dealership information"
-        );
+        setError(data.error?.message || "Failed to update dealership information");
       }
     } catch (err) {
       console.error("Error updating dealership:", err);
@@ -160,188 +140,126 @@ const DealerProfile = () => {
 
   return (
     <div className="max-w-2xl">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900">Dealership Profile</h1>
-        <p className="text-slate-600 mt-1">
-          Manage your dealership information.
-        </p>
+        <p className="text-slate-600 mt-1">Manage your dealership information.</p>
       </div>
 
-      {/* Success Message */}
       {success && (
         <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
           <p className="text-green-700">{success}</p>
         </div>
       )}
 
-      {/* Error Message */}
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-700">{error}</p>
         </div>
       )}
 
-      {/* Form */}
       <form
         onSubmit={handleSubmit}
         className="bg-white rounded-lg shadow-md p-6 space-y-6"
       >
         <fieldset disabled={!canUpdateProfile} className="space-y-6 border-0 p-0 m-0">
-        {/* Full Name */}
-        <div>
-          <label htmlFor="full_name" className="block text-sm font-medium text-slate-700 mb-2">
-            Full Name *
-          </label>
-          <input
-            type="text"
-            id="full_name"
-            name="full_name"
-            value={formData.full_name}
-            onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary transition-colors ${
-              errors.full_name ? "border-red-500" : "border-slate-300"
-            }`}
-            placeholder="e.g., Downtown Auto Sales"
-          />
-          {errors.full_name && (
-            <p className="text-red-600 text-xs mt-1">{errors.full_name}</p>
-          )}
-        </div>
-
-        {/* Short Name */}
-        <div>
-          <label htmlFor="short_name" className="block text-sm font-medium text-slate-700 mb-2">
-            Short Name *
-          </label>
-          <input
-            type="text"
-            id="short_name"
-            name="short_name"
-            value={formData.short_name}
-            onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary transition-colors ${
-              errors.short_name ? "border-red-500" : "border-slate-300"
-            }`}
-            placeholder="e.g., Downtown Auto"
-          />
-          {errors.short_name && (
-            <p className="text-red-600 text-xs mt-1">{errors.short_name}</p>
-          )}
-        </div>
-
-        {/* Address */}
-        <div>
-          <label htmlFor="address" className="block text-sm font-medium text-slate-700 mb-2">
-            Street Address *
-          </label>
-          <input
-            type="text"
-            id="address"
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary transition-colors ${
-              errors.address ? "border-red-500" : "border-slate-300"
-            }`}
-            placeholder="e.g., 123 Main Street"
-          />
-          {errors.address && (
-            <p className="text-red-600 text-xs mt-1">{errors.address}</p>
-          )}
-        </div>
-
-        {/* City, State, ZIP Grid */}
-        <div className="grid grid-cols-3 gap-4">
-          {/* City */}
           <div>
-            <label htmlFor="city" className="block text-sm font-medium text-slate-700 mb-2">
-              City *
+            <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-2">
+              Name *
             </label>
             <input
               type="text"
-              id="city"
-              name="city"
-              value={formData.city}
+              id="name"
+              name="name"
+              value={formData.name}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary transition-colors ${
-                errors.city ? "border-red-500" : "border-slate-300"
+              className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary ${
+                errors.name ? "border-red-500" : "border-slate-300"
               }`}
-              placeholder="e.g., Austin"
             />
-            {errors.city && (
-              <p className="text-red-600 text-xs mt-1">{errors.city}</p>
-            )}
+            {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name}</p>}
           </div>
 
-          {/* State */}
           <div>
-            <label htmlFor="state" className="block text-sm font-medium text-slate-700 mb-2">
-              State *
+            <label className="block text-sm font-medium text-slate-700 mb-2">TIN</label>
+            <input
+              type="text"
+              value={dealership?.tin || ""}
+              readOnly
+              className="w-full px-4 py-2 border rounded-lg text-sm bg-slate-100 border-slate-300 text-slate-600"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="district" className="block text-sm font-medium text-slate-700 mb-2">
+              District *
             </label>
             <input
               type="text"
-              id="state"
-              name="state"
-              value={formData.state}
+              id="district"
+              name="district"
+              value={formData.district}
               onChange={handleChange}
-              maxLength="2"
-              className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary transition-colors uppercase ${
-                errors.state ? "border-red-500" : "border-slate-300"
+              className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary ${
+                errors.district ? "border-red-500" : "border-slate-300"
               }`}
-              placeholder="e.g., TX"
             />
-            {errors.state && (
-              <p className="text-red-600 text-xs mt-1">{errors.state}</p>
+            {errors.district && (
+              <p className="text-red-600 text-xs mt-1">{errors.district}</p>
             )}
           </div>
 
-          {/* ZIP */}
           <div>
-            <label htmlFor="zip" className="block text-sm font-medium text-slate-700 mb-2">
-              ZIP Code *
+            <label
+              htmlFor="physical_address"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
+              Physical address *
             </label>
             <input
               type="text"
-              id="zip"
-              name="zip"
-              value={formData.zip}
+              id="physical_address"
+              name="physical_address"
+              value={formData.physical_address}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary transition-colors ${
-                errors.zip ? "border-red-500" : "border-slate-300"
+              className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary ${
+                errors.physical_address ? "border-red-500" : "border-slate-300"
               }`}
-              placeholder="e.g., 78701"
             />
-            {errors.zip && (
-              <p className="text-red-600 text-xs mt-1">{errors.zip}</p>
+            {errors.physical_address && (
+              <p className="text-red-600 text-xs mt-1">{errors.physical_address}</p>
             )}
           </div>
-        </div>
 
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+              Email *
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary ${
+                errors.email ? "border-red-500" : "border-slate-300"
+              }`}
+            />
+            {errors.email && <p className="text-red-600 text-xs mt-1">{errors.email}</p>}
+          </div>
         </fieldset>
 
-        {/* Submit Button */}
         <div className="flex gap-4 pt-4">
           {canUpdateProfile && (
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2 bg-brand-primary text-white font-medium rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-brand-primary text-white font-medium rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50"
             >
               {submitting ? "Saving..." : "Save Changes"}
             </button>
           )}
         </div>
       </form>
-
-      {/* Info Box */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-800">
-          <strong>Note:</strong> Changes to your dealership information will be
-          reflected across the platform immediately. All fields marked with * are
-          required.
-        </p>
-      </div>
     </div>
   );
 };

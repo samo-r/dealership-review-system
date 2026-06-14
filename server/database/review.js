@@ -38,7 +38,7 @@ const reviews = new Schema({
   },
   car_year: {
     type: Number,
-    required: true,
+    required: false,
   },
   author_id: {
     type: Number,

@@ -4,48 +4,31 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const dealerships = new Schema({
-  id: {
+  dealer_id: {
     type: Number,
     required: true,
+    unique: true,
   },
-  city: {
+  name: {
     type: String,
     required: true,
   },
-  state: {
+  tin: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  district: {
     type: String,
     required: true,
   },
-  address: {
+  physical_address: {
     type: String,
     required: true,
-  },
-  zip: {
-    type: String,
-    required: true,
-  },
-  lat: {
-    type: String,
-    required: true,
-  },
-  long: {
-    type: String,
-    required: true,
-  },
-  short_name: {
-    type: String,
-  },
-  full_name: {
-    type: String,
-    required: true,
-  },
-  contact_number: {
-    type: String,
-    default: "",
   },
   email: {
     type: String,
-    default: "",
+    required: true,
   },
 });
 

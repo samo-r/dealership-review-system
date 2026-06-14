@@ -73,9 +73,10 @@ const Dealer = () => {
               </h1>
               {dealer && (
                 <p className="mt-2 text-sm text-slate-600">
-                  {dealer.city}, {dealer.address}
-                  {dealer.zip ? ` • ZIP ${dealer.zip}` : ""}
-                  {dealer.state ? ` • ${dealer.state}` : ""}
+                  {dealer.district || dealer.city}
+                  {(dealer.physical_address || dealer.address)
+                    ? ` • ${dealer.physical_address || dealer.address}`
+                    : ""}
                 </p>
               )}
             </div>
@@ -136,7 +137,8 @@ const Dealer = () => {
                     <div>
                       <p className="text-lg font-semibold text-slate-900">{review.name}</p>
                       <p className="text-sm text-slate-500">
-                        {review.car_make} {review.car_model} • {review.car_year}
+                        {review.car_make} {review.car_model}
+                        {review.car_year ? ` • ${review.car_year}` : ""}
                       </p>
                     </div>
                   </div>

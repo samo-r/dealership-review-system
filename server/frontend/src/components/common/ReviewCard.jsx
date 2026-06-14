@@ -78,7 +78,8 @@ const ReviewCard = ({
             ))}
           </div>
           <p className="text-xs text-slate-600 font-medium">
-            {review.car_make} {review.car_model} ({review.car_year})
+            {review.car_make} {review.car_model}
+            {review.car_year ? ` (${review.car_year})` : ""}
           </p>
           {dealerName && (
             <p className="text-xs text-slate-500 mt-1">

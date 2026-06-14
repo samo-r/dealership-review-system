@@ -1,5 +1,6 @@
 Flask
 nltk
+vaderSentiment
 redis
 requests
 python-dotenv

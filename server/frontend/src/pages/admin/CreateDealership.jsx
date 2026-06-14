@@ -11,8 +11,9 @@ const CreateDealership = () => {
   const [formErrors, setFormErrors] = useState({});
   const [formData, setFormData] = useState({
     name: "",
-    location: "",
-    contactNumber: "",
+    tin: "",
+    district: "",
+    physical_address: "",
     email: "",
   });
 
@@ -20,9 +21,10 @@ const CreateDealership = () => {
     const nextErrors = {};
 
     if (!formData.name.trim()) nextErrors.name = "Name is required.";
-    if (!formData.location.trim()) nextErrors.location = "Location is required.";
-    if (!formData.contactNumber.trim()) {
-      nextErrors.contactNumber = "Contact number is required.";
+    if (!formData.tin.trim()) nextErrors.tin = "TIN is required.";
+    if (!formData.district.trim()) nextErrors.district = "District is required.";
+    if (!formData.physical_address.trim()) {
+      nextErrors.physical_address = "Physical address is required.";
     }
     if (!formData.email.trim()) nextErrors.email = "Email is required.";
 
@@ -64,7 +66,8 @@ const CreateDealership = () => {
       }
 
       const data = await response.json();
-      const dealershipId = data.dealership_id ?? data.dealership?.id;
+      const dealershipId =
+        data.dealership_id ?? data.dealership?.dealer_id ?? data.dealership?.id;
 
       if (response.status === 201 && dealershipId) {
         navigate(`/admin/users/create?dealership_id=${dealershipId}`);
@@ -101,28 +104,38 @@ const CreateDealership = () => {
           name="name"
           value={formData.name}
           onChange={handleChange}
-          placeholder="e.g., Kampala Motors"
+          placeholder="e.g., Kampala Auto Hub"
           error={formErrors.name}
           required
         />
 
         <AdminFormField
-          label="Location"
-          name="location"
-          value={formData.location}
+          label="TIN"
+          name="tin"
+          value={formData.tin}
           onChange={handleChange}
-          placeholder="e.g., Plot 12, Jinja Road, Kampala"
-          error={formErrors.location}
+          placeholder="e.g., 1000000001"
+          error={formErrors.tin}
           required
         />
 
         <AdminFormField
-          label="Contact number"
-          name="contactNumber"
-          value={formData.contactNumber}
+          label="District"
+          name="district"
+          value={formData.district}
           onChange={handleChange}
-          placeholder="e.g., +256 700 000000"
-          error={formErrors.contactNumber}
+          placeholder="e.g., Kampala"
+          error={formErrors.district}
+          required
+        />
+
+        <AdminFormField
+          label="Physical address"
+          name="physical_address"
+          value={formData.physical_address}
+          onChange={handleChange}
+          placeholder="e.g., Plot 15, Jinja Road"
+          error={formErrors.physical_address}
           required
         />
 
@@ -132,7 +145,7 @@ const CreateDealership = () => {
           type="email"
           value={formData.email}
           onChange={handleChange}
-          placeholder="contact@dealership.example"
+          placeholder="contact@dealership.ug"
           error={formErrors.email}
           required
         />

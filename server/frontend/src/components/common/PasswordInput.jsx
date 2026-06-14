@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const inputClassName =
+const defaultInputClassName =
   "w-full rounded-2xl border border-slate-300 bg-slate-50 py-3 pl-4 pr-12 text-sm text-slate-900 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20";
 
 const EyeIcon = () => (
@@ -48,9 +48,16 @@ const PasswordInput = ({
   onChange,
   placeholder = "Password",
   autoComplete = "current-password",
+  inputClassName,
+  hasError = false,
+  showToggleLabel = "Show password",
+  hideToggleLabel = "Hide password",
 }) => {
-  const [showPassword, setShowPassword] = useState(false);
+  const [showValue, setShowValue] = useState(false);
   const fieldId = id || name || "password";
+  const fieldClassName = `${inputClassName || defaultInputClassName}${
+    hasError ? " border-red-500" : ""
+  }`;
 
   return (
     <div>
@@ -63,21 +70,21 @@ const PasswordInput = ({
         <input
           id={fieldId}
           name={name}
-          type={showPassword ? "text" : "password"}
+          type={showValue ? "text" : "password"}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
           autoComplete={autoComplete}
-          className={inputClassName}
+          className={fieldClassName}
         />
         <button
           type="button"
-          onClick={() => setShowPassword((previous) => !previous)}
+          onClick={() => setShowValue((previous) => !previous)}
           className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 transition hover:text-slate-700"
-          aria-label={showPassword ? "Hide password" : "Show password"}
-          aria-pressed={showPassword}
+          aria-label={showValue ? hideToggleLabel : showToggleLabel}
+          aria-pressed={showValue}
         >
-          {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+          {showValue ? <EyeOffIcon /> : <EyeIcon />}
         </button>
       </div>
     </div>
