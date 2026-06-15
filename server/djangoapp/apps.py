@@ -8,10 +8,13 @@ class DjangoappConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
 
     def ready(self):
-        if any(
-            command in sys.argv
-            for command in ("migrate", "makemigrations", "test", "collectstatic")
-        ):
+        skip_commands = (
+            "migrate",
+            "makemigrations",
+            "test",
+            "collectstatic",
+        )
+        if any(command in sys.argv for command in skip_commands):
             return
 
         from djangoapp.sentiment_events import verify_redis_connection

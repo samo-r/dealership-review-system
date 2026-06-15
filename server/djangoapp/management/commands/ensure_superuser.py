@@ -13,7 +13,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         username = os.getenv("DJANGO_SUPERUSER_USERNAME", "").strip()
         password = os.getenv("DJANGO_SUPERUSER_PASSWORD", "")
-        email = os.getenv("DJANGO_SUPERUSER_EMAIL", "admin@example.com").strip()
+        email = os.getenv("DJANGO_SUPERUSER_EMAIL",
+                          "admin@example.com").strip()
 
         if not username or not password:
             self.stdout.write(
@@ -32,4 +33,5 @@ class Command(BaseCommand):
             email=email,
             password=password,
         )
-        self.stdout.write(self.style.SUCCESS(f"Created superuser '{username}'."))
+        self.stdout.write(self.style.SUCCESS(
+            f"Created superuser '{username}'."))

@@ -1,4 +1,4 @@
-/* jshint esversion: 8, sub: true */
+/* jshint esversion: 11, node: true, sub: true */
 const mongoose = require("mongoose");
 
 const Schema = mongoose.Schema;

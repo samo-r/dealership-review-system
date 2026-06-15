@@ -9,7 +9,8 @@ from .sentiment_logging import (
 
 logger = logging.getLogger(__name__)
 
-SENTIMENT_QUEUE_NAME = os.getenv("SENTIMENT_QUEUE_NAME", "review_sentiment_queue").strip()
+SENTIMENT_QUEUE_NAME = os.getenv(
+    "SENTIMENT_QUEUE_NAME", "review_sentiment_queue").strip()
 REDIS_URL = os.getenv("REDIS_URL", "").strip()
 
 
@@ -37,7 +38,8 @@ def verify_redis_connection():
     """
     if not REDIS_URL:
         logger.warning(
-            "[redis] REDIS_URL is not set — sentiment queue publishing is disabled.",
+            "[redis] REDIS_URL is not set — "
+            "sentiment queue publishing is disabled.",
         )
         return False
 
@@ -60,7 +62,7 @@ def verify_redis_connection():
 def publish_review_sentiment_event(event_type, review_id, text):
     """
     Enqueue a review for asynchronous sentiment analysis.
-    Returns True when the event was queued, False when skipped or Redis is unavailable.
+    Returns True when queued, False when skipped or Redis unavailable.
     """
     if not review_id or not text or not str(text).strip():
         return False

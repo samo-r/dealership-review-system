@@ -126,9 +126,11 @@ def analyze_review_sentiments(text):
 # Function to handle PUT requests to the database API
 def put_request(endpoint, data_dict):
     request_url = backend_url + endpoint
-    print("PUT to {} with body {}".format(request_url, _redact_sensitive(data_dict)))
+    print("PUT to {} with body {}".format(
+        request_url, _redact_sensitive(data_dict)))
     try:
-        response = requests.put(request_url, json=data_dict, timeout=REQUEST_TIMEOUT)
+        response = requests.put(
+            request_url, json=data_dict, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.HTTPError as err:
@@ -159,7 +161,8 @@ def put_request(endpoint, data_dict):
 def post_review(data_dict):
     request_url = backend_url + "/insert_review"
     try:
-        response = requests.post(request_url, json=data_dict, timeout=REQUEST_TIMEOUT)
+        response = requests.post(
+            request_url, json=data_dict, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         print(response.json())
         return response.json()
@@ -228,7 +231,8 @@ def post_internal_request(endpoint, data_dict):
         )
 
     request_url = backend_url + endpoint
-    print("POST to {} with body {}".format(request_url, _redact_sensitive(data_dict)))
+    print("POST to {} with body {}".format(
+        request_url, _redact_sensitive(data_dict)))
     try:
         response = requests.post(
             request_url,
@@ -275,9 +279,11 @@ def verify_chassis(dealer_id, chassis_number):
 # Generic POST helper (used for inventory and other non-review POST endpoints)
 def post_request(endpoint, data_dict):
     request_url = backend_url + endpoint
-    print("POST to {} with body {}".format(request_url, _redact_sensitive(data_dict)))
+    print("POST to {} with body {}".format(
+        request_url, _redact_sensitive(data_dict)))
     try:
-        response = requests.post(request_url, json=data_dict, timeout=REQUEST_TIMEOUT)
+        response = requests.post(
+            request_url, json=data_dict, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.HTTPError as err:

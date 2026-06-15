@@ -15,11 +15,10 @@ Run with:
 """
 
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
-from django.urls import reverse
 
 from .views import issue_tokens
 
@@ -69,7 +68,10 @@ def json_body(data):
 
 
 def make_review_stub(author_id, author_username="testuser"):
-    return {**REVIEW_STUB, "author_id": author_id, "author_username": author_username}
+    return {
+        **REVIEW_STUB,
+        "author_id": author_id,
+        "author_username": author_username}
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +170,8 @@ class AuthTests(RbacTestBase):
     def test_registration_ignores_client_supplied_role(self):
         resp = self.client.post(
             "/djangoapp/register/",
-            json_body({"userName": "hacker", "password": "Pass1!", "role": "ADMIN"}),
+            json_body(
+                {"userName": "hacker", "password": "Pass1!", "role": "ADMIN"}),
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 201)
@@ -223,7 +226,8 @@ class CreateDealershipTests(RbacTestBase):
             **headers,
         )
 
-    @patch("djangoapp.views.post_request", return_value=MOCK_CREATED_DEALERSHIP)
+    @patch("djangoapp.views.post_request",
+           return_value=MOCK_CREATED_DEALERSHIP)
     def test_admin_can_create_dealership(self, _mock):
         resp = self._post(self.admin, {
             "name": "Kampala Motors",
@@ -236,7 +240,8 @@ class CreateDealershipTests(RbacTestBase):
         self.assertEqual(resp.status_code, 201)
         self.assertEqual(data["dealership_id"], 99)
 
-    @patch("djangoapp.views.post_request", return_value=MOCK_CREATED_DEALERSHIP)
+    @patch("djangoapp.views.post_request",
+           return_value=MOCK_CREATED_DEALERSHIP)
     def test_superuser_can_create_dealership(self, _mock):
         resp = self._post(self.superuser, {
             "name": "Entebbe Autos",
@@ -367,15 +372,18 @@ class CreateDealerAdminTests(RbacTestBase):
 class AdminUserListTests(RbacTestBase):
 
     def test_admin_can_list_platform_users(self):
-        resp = self.client.get("/djangoapp/admin/users", **auth_header(self.admin))
+        resp = self.client.get("/djangoapp/admin/users",
+                               **auth_header(self.admin))
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
         self.assertEqual(body["status"], 200)
         self.assertTrue(any(user["role"] == "ADMIN" for user in body["users"]))
-        self.assertTrue(any(user["role"] == "CUSTOMER" for user in body["users"]))
+        self.assertTrue(
+            any(user["role"] == "CUSTOMER" for user in body["users"]))
 
     def test_customer_cannot_list_platform_users(self):
-        resp = self.client.get("/djangoapp/admin/users", **auth_header(self.customer))
+        resp = self.client.get("/djangoapp/admin/users",
+                               **auth_header(self.customer))
         self.assertEqual(resp.status_code, 403)
 
     def test_anonymous_cannot_list_platform_users(self):
@@ -397,7 +405,8 @@ class DealershipReadTests(RbacTestBase):
 
     @patch("djangoapp.views.get_request", return_value=MOCK_DEALERS)
     def test_customer_can_list_dealers(self, _mock):
-        resp = self.client.get("/djangoapp/get_dealers", **auth_header(self.customer))
+        resp = self.client.get("/djangoapp/get_dealers",
+                               **auth_header(self.customer))
         self.assertEqual(resp.status_code, 200)
 
     @patch("djangoapp.views.get_request", return_value=MOCK_DEALER)
@@ -408,7 +417,8 @@ class DealershipReadTests(RbacTestBase):
 
     @patch("djangoapp.views.get_request", return_value=MOCK_DEALER)
     def test_dealer_admin_can_get_dealer_details(self, _mock):
-        resp = self.client.get("/djangoapp/dealer/1", **auth_header(self.dealer_admin))
+        resp = self.client.get("/djangoapp/dealer/1", **
+                               auth_header(self.dealer_admin))
         self.assertEqual(resp.status_code, 200)
 
     @patch("djangoapp.views.get_request", return_value=MOCK_DEALERS)
@@ -481,11 +491,13 @@ class MyReviewsTests(RbacTestBase):
                     "sentiment": "positive",
                     "sentiment_status": "completed",
                 },
-                {"id": 102, "dealership": 1, "review": "Not mine", "author_id": self.admin.id},
+                {"id": 102, "dealership": 1, "review": "Not mine",
+                    "author_id": self.admin.id},
             ],
         ]
 
-        resp = self.client.get("/djangoapp/reviews/me", **auth_header(self.customer))
+        resp = self.client.get("/djangoapp/reviews/me",
+                               **auth_header(self.customer))
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
         self.assertEqual(body["status"], 200)
@@ -529,7 +541,8 @@ class ReviewCreateTests(RbacTestBase):
     @patch("djangoapp.views.publish_review_sentiment_event", return_value=True)
     @patch("djangoapp.views.verify_chassis", return_value={"verified": True})
     @patch("djangoapp.views.post_review", return_value={"id": 99})
-    def test_customer_can_create_review(self, mock_post, _mock_verify, _mock_publish):
+    def test_customer_can_create_review(
+            self, mock_post, _mock_verify, _mock_publish):
         resp = self._post(self.customer)
         self.assertEqual(resp.status_code, 200)
         # Authorship is stamped onto the forwarded payload
@@ -541,7 +554,11 @@ class ReviewCreateTests(RbacTestBase):
     @patch("djangoapp.views.publish_review_sentiment_event", return_value=True)
     @patch("djangoapp.views.verify_chassis", return_value={"verified": True})
     @patch("djangoapp.views.post_review", return_value={"id": 99})
-    def test_admin_can_create_review(self, _mock_post, _mock_verify, _mock_publish):
+    def test_admin_can_create_review(
+            self,
+            _mock_post,
+            _mock_verify,
+            _mock_publish):
         resp = self._post(self.admin)
         self.assertEqual(resp.status_code, 200)
 
@@ -563,7 +580,8 @@ class ReviewCreateTests(RbacTestBase):
         self.assertEqual(resp.status_code, 400)
 
     def test_get_method_returns_405(self):
-        resp = self.client.get("/djangoapp/add_review", **auth_header(self.customer))
+        resp = self.client.get("/djangoapp/add_review",
+                               **auth_header(self.customer))
         self.assertEqual(resp.status_code, 405)
 
     @patch("djangoapp.views.verify_chassis", return_value={"verified": True})
@@ -578,12 +596,14 @@ class ReviewCreateTests(RbacTestBase):
     def test_invalid_chassis_number_blocks_review(self, _mock_verify):
         resp = self._post(self.customer)
         self.assertEqual(resp.status_code, 403)
-        self.assertEqual(resp.json()["error"]["code"], "CHASSIS_VERIFICATION_FAILED")
+        self.assertEqual(resp.json()["error"]["code"],
+                         "CHASSIS_VERIFICATION_FAILED")
 
     @patch("djangoapp.views.publish_review_sentiment_event", return_value=True)
     @patch("djangoapp.views.verify_chassis", return_value={"verified": True})
     @patch("djangoapp.views.post_review", return_value={"id": 99})
-    def test_chassis_number_is_not_forwarded_to_review_storage(self, mock_post, _mock_verify, _mock_publish):
+    def test_chassis_number_is_not_forwarded_to_review_storage(
+            self, mock_post, _mock_verify, _mock_publish):
         resp = self._post(self.customer)
         self.assertEqual(resp.status_code, 200)
         call_data = mock_post.call_args[0][0]
@@ -597,8 +617,10 @@ class SentimentEventTests(RbacTestBase):
 
     @patch("djangoapp.views.verify_chassis", return_value={"verified": True})
     @patch("djangoapp.views.publish_review_sentiment_event", return_value=True)
-    @patch("djangoapp.views.post_review", return_value={"id": 99, "sentiment_status": "pending"})
-    def test_add_review_publishes_sentiment_event(self, mock_post, mock_publish, _mock_verify):
+    @patch("djangoapp.views.post_review",
+           return_value={"id": 99, "sentiment_status": "pending"})
+    def test_add_review_publishes_sentiment_event(
+            self, mock_post, mock_publish, _mock_verify):
         resp = self.client.post(
             "/djangoapp/add_review",
             json_body(REVIEW_PAYLOAD),
@@ -613,8 +635,10 @@ class SentimentEventTests(RbacTestBase):
         )
 
     @patch("djangoapp.views.publish_review_sentiment_event", return_value=True)
-    @patch("djangoapp.views.put_request", return_value={"id": 1, "sentiment_status": "pending"})
-    def test_update_review_text_publishes_sentiment_event(self, _put, mock_publish):
+    @patch("djangoapp.views.put_request",
+           return_value={"id": 1, "sentiment_status": "pending"})
+    def test_update_review_text_publishes_sentiment_event(
+            self, _put, mock_publish):
         resp = self.client.put(
             "/djangoapp/reviews/1/update",
             json_body(UPDATE_REVIEW_PAYLOAD),
@@ -630,7 +654,8 @@ class SentimentEventTests(RbacTestBase):
 
     @patch("djangoapp.views.publish_review_sentiment_event", return_value=True)
     @patch("djangoapp.views.put_request", return_value={"id": 1})
-    def test_update_review_without_text_skips_sentiment_event(self, _put, mock_publish):
+    def test_update_review_without_text_skips_sentiment_event(
+            self, _put, mock_publish):
         resp = self.client.put(
             "/djangoapp/reviews/1/update",
             json_body({"car_make": "Toyota"}),
@@ -657,9 +682,11 @@ class ReviewUpdateTests(RbacTestBase):
         )
 
     @patch("djangoapp.views.put_request", return_value=UPDATE_OK)
-    @patch("djangoapp.views.get_request", return_value=make_review_stub(author_id=None))
+    @patch("djangoapp.views.get_request",
+           return_value=make_review_stub(author_id=None))
     def test_admin_can_update_any_review(self, _get, _put):
-        # get_request stub is not called for admin (update.any bypasses ownership check)
+        # get_request stub is not called for admin (update.any bypasses
+        # ownership check)
         resp = self._put(self.admin, review_id=1)
         self.assertEqual(resp.status_code, 200)
         _get.assert_not_called()
@@ -689,7 +716,8 @@ class ReviewUpdateTests(RbacTestBase):
     def test_no_update_fields_returns_400(self):
         own_stub = make_review_stub(author_id=self.customer.id)
         with patch("djangoapp.views.get_request", return_value=own_stub):
-            resp = self._put(self.customer, review_id=1, payload={"unknown_field": "x"})
+            resp = self._put(self.customer, review_id=1,
+                             payload={"unknown_field": "x"})
         self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.json()["error"]["code"], "NO_UPDATE_FIELDS")
 
@@ -713,12 +741,14 @@ class ReviewDeleteTests(RbacTestBase):
             **headers,
         )
 
-    @patch("djangoapp.views.delete_request", return_value={"message": "Review deleted."})
+    @patch("djangoapp.views.delete_request",
+           return_value={"message": "Review deleted."})
     def test_admin_can_delete_any_review(self, _del):
         resp = self._delete(self.admin, review_id=1)
         self.assertEqual(resp.status_code, 200)
 
-    @patch("djangoapp.views.delete_request", return_value={"message": "Review deleted."})
+    @patch("djangoapp.views.delete_request",
+           return_value={"message": "Review deleted."})
     def test_customer_can_delete_own_review(self, _del):
         own_stub = make_review_stub(author_id=self.customer.id)
         with patch("djangoapp.views.get_request", return_value=own_stub):
@@ -870,7 +900,8 @@ class UpstreamErrorTests(RbacTestBase):
         self.assertEqual(resp.status_code, 503)
 
     @patch("djangoapp.views.put_request", return_value=UPSTREAM_ERROR)
-    @patch("djangoapp.views.get_request", return_value=make_review_stub(author_id=None))
+    @patch("djangoapp.views.get_request",
+           return_value=make_review_stub(author_id=None))
     def test_upstream_error_on_update_review_is_surfaced(self, _get, _put):
         resp = self.client.put(
             "/djangoapp/reviews/1/update",
@@ -909,9 +940,13 @@ class TokenEdgeCaseTests(RbacTestBase):
             "assigned_dealer_id": None,
             "iat": int((now - timedelta(hours=2)).timestamp()),
             "type": "access",
-            "exp": int((now - timedelta(hours=1)).timestamp()),  # already expired
+            # already expired
+            "exp": int((now - timedelta(hours=1)).timestamp()),
         }
-        expired_token = pyjwt.encode(payload, settings.JWT_SIGNING_KEY, algorithm=settings.JWT_ALGORITHM)
+        expired_token = pyjwt.encode(
+            payload,
+            settings.JWT_SIGNING_KEY,
+            algorithm=settings.JWT_ALGORITHM)
         resp = self.client.get(
             "/djangoapp/get_dealers",
             HTTP_AUTHORIZATION=f"Bearer {expired_token}",

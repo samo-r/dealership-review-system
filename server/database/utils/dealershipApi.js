@@ -1,4 +1,4 @@
-/* jshint esversion: 8, sub: true */
+/* jshint esversion: 11, node: true, sub: true */
 
 const formatDealershipForApi = (doc) => {
   const record = doc && doc.toObject ? doc.toObject() : { ...doc };

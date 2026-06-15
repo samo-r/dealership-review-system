@@ -49,8 +49,10 @@ def log_reviews_batch_summary(reviews, context):
     if not isinstance(reviews, list):
         return
 
-    pending = sum(1 for review in reviews if review.get("sentiment_status") == "pending")
-    failed = sum(1 for review in reviews if review.get("sentiment_status") == "failed")
+    pending = sum(1 for review in reviews if review.get(
+        "sentiment_status") == "pending")
+    failed = sum(1 for review in reviews if review.get(
+        "sentiment_status") == "failed")
 
     if pending:
         logger.info(

@@ -37,7 +37,8 @@ def require_env(name):
 
 
 REDIS_URL = require_env("REDIS_URL")
-SENTIMENT_QUEUE_NAME = os.getenv("SENTIMENT_QUEUE_NAME", "review_sentiment_queue").strip()
+SENTIMENT_QUEUE_NAME = os.getenv(
+    "SENTIMENT_QUEUE_NAME", "review_sentiment_queue").strip()
 BACKEND_URL = require_env("backend_url").rstrip("/")
 SENTIMENT_ANALYZER_URL = require_env("sentiment_analyzer_url").rstrip("/")
 INTERNAL_API_KEY = require_env("INTERNAL_API_KEY")
@@ -100,7 +101,9 @@ def patch_review_sentiment(review_id, sentiment, status, error_message=None):
     body = {
         "sentiment": sentiment,
         "sentiment_status": status,
-        "sentiment_analyzed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "sentiment_analyzed_at": time.strftime(
+            "%Y-%m-%dT%H:%M:%SZ",
+            time.gmtime()),
         "sentiment_error": error_message,
     }
     response = requests.patch(
@@ -145,7 +148,8 @@ def process_event(event):
                 last_error,
             )
             if attempt < MAX_RETRIES - 1:
-                time.sleep(RETRY_BACKOFF_SECONDS[min(attempt, len(RETRY_BACKOFF_SECONDS) - 1)])
+                time.sleep(RETRY_BACKOFF_SECONDS[min(
+                    attempt, len(RETRY_BACKOFF_SECONDS) - 1)])
 
     try:
         patch_review_sentiment(review_id, None, "failed", last_error)
@@ -155,7 +159,10 @@ def process_event(event):
             last_error,
         )
     except Exception as err:
-        logger.error("[sentiment] review_id=%s status=FAILED persist-error=%s", review_id, err)
+        logger.error(
+            "[sentiment] review_id=%s status=FAILED persist-error=%s",
+            review_id,
+            err)
 
 
 def run_worker():

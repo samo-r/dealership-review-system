@@ -25,8 +25,10 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 def require_env(name):
     value = os.getenv(name)
     if value is None or not str(value).strip():
-        raise ImproperlyConfigured(f"Missing required environment variable: {name}")
+        raise ImproperlyConfigured(
+            f"Missing required environment variable: {name}")
     return str(value).strip()
+
 
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 FRONTEND_BUILD_DIR = os.path.join(FRONTEND_DIR, "build")
@@ -59,7 +61,8 @@ def normalize_allowed_hosts(hosts):
             normalized.append(candidate)
             continue
 
-        parsed = urlparse(candidate if "://" in candidate else f"//{candidate}")
+        parsed = urlparse(
+            candidate if "://" in candidate else f"//{candidate}")
         host = parsed.hostname or candidate
         if host:
             normalized.append(host)
@@ -75,7 +78,8 @@ def normalize_csrf_trusted_origins(origins):
             continue
 
         if "://" not in candidate:
-            if candidate.startswith("localhost") or candidate.startswith("127.0.0.1"):
+            if candidate.startswith(
+                    "localhost") or candidate.startswith("127.0.0.1"):
                 candidate = f"http://{candidate}"
             else:
                 candidate = f"https://{candidate}"
@@ -167,9 +171,11 @@ def build_database_config(base_dir):
         return {
             "default": {
                 "ENGINE": "django.db.backends.sqlite3",
-                "NAME": base_dir / os.getenv("DJANGO_DB_FILENAME", "db.sqlite3"),
-            }
-        }
+                "NAME": base_dir /
+                os.getenv(
+                    "DJANGO_DB_FILENAME",
+                    "db.sqlite3"),
+            }}
 
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
@@ -265,15 +271,17 @@ MEDIA_URL = "/media/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 STATICFILES_DIRS = [
-    path for path in [FRONTEND_STATIC_DIR, FRONTEND_BUILD_STATIC_DIR] if os.path.isdir(path)
-]
+    path for path in [
+        FRONTEND_STATIC_DIR,
+        FRONTEND_BUILD_STATIC_DIR] if os.path.isdir(path)]
 
 # This section fixes the proxy issue in the browser
 # Tells Django the proxy is secure
 if env_bool("DJANGO_USE_SECURE_PROXY_SSL_HEADER", default=IS_PRODUCTION):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", default=IS_PRODUCTION)
+SECURE_SSL_REDIRECT = env_bool(
+    "DJANGO_SECURE_SSL_REDIRECT", default=IS_PRODUCTION)
 
 # Allows cookies to work across environments.
 # Local HTTP: Lax + non-secure for easy login/session.
@@ -290,8 +298,10 @@ session_samesite = os.getenv(
 CSRF_COOKIE_SAMESITE = csrf_samesite
 SESSION_COOKIE_SAMESITE = session_samesite
 
-CSRF_COOKIE_SECURE = env_bool("DJANGO_CSRF_COOKIE_SECURE", default=IS_PRODUCTION)
-SESSION_COOKIE_SECURE = env_bool("DJANGO_SESSION_COOKIE_SECURE", default=IS_PRODUCTION)
+CSRF_COOKIE_SECURE = env_bool(
+    "DJANGO_CSRF_COOKIE_SECURE", default=IS_PRODUCTION)
+SESSION_COOKIE_SECURE = env_bool(
+    "DJANGO_SESSION_COOKIE_SECURE", default=IS_PRODUCTION)
 
 # Browser rule: SameSite=None cookies must also be Secure.
 if CSRF_COOKIE_SAMESITE == "None":

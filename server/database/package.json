@@ -15,6 +15,10 @@
   },
   "author": "",
   "license": "ISC",
+  "jshintConfig": {
+    "esversion": 11,
+    "node": true
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^17.3.1",

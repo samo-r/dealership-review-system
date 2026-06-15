@@ -10,7 +10,8 @@ from .models import CarMake, CarModel, User
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     # Show role and dealer ID columns in the user list view.
-    list_display = ("username", "email", "role", "assigned_dealer_id", "is_staff")
+    list_display = ("username", "email", "role",
+                    "assigned_dealer_id", "is_staff")
     # Allow filtering users by role in the sidebar.
     list_filter = BaseUserAdmin.list_filter + ("role",)
 
@@ -34,8 +35,10 @@ class UserAdmin(BaseUserAdmin):
     )
 
     def save_model(self, request, obj, form, change):
-        # Only superusers can elevate a user to DEALER_ADMIN or assign a dealer.
-        # If a non-superuser staff member attempts this, silently force CUSTOMER.
+        # Only superusers can elevate a user to DEALER_ADMIN or assign
+        # a dealer.
+        # If a non-superuser staff member attempts this, silently force
+        # CUSTOMER.
         if not request.user.is_superuser:
             obj.role = User.Roles.CUSTOMER
             obj.assigned_dealer_id = None

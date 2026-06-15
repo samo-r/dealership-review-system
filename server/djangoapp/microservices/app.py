@@ -71,7 +71,8 @@ def analyze_sentiment(input_txt):
     text = (input_txt or "").strip()
     if not text:
         label = "neutral"
-        logger.info("sentiment=neutral avg_compound=0.000 sentences=0 (empty input)")
+        logger.info(
+            "sentiment=neutral avg_compound=0.000 sentences=0 (empty input)")
         return json.dumps({"sentiment": label})
 
     avg_compound = average_sentence_compound(text)

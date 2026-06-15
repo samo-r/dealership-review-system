@@ -1,4 +1,4 @@
-/* jshint esversion: 8, sub: true */
+/* jshint esversion: 11, node: true, sub: true */
 const express = require("express");
 const path = require("path");
 
@@ -181,12 +181,15 @@ const validateDealershipPayload = (data) => {
   const name = typeof data.name === "string" ? data.name.trim() : "";
   const tin = typeof data.tin === "string" ? data.tin.trim() : "";
   const district = typeof data.district === "string" ? data.district.trim() : "";
-  const physicalAddress =
-    typeof data.physical_address === "string"
-      ? data.physical_address.trim()
-      : typeof data.location === "string"
-      ? data.location.trim()
-      : "";
+  const physicalAddress = (() => {
+    if (typeof data.physical_address === "string") {
+      return data.physical_address.trim();
+    }
+    if (typeof data.location === "string") {
+      return data.location.trim();
+    }
+    return "";
+  })();
   const email = typeof data.email === "string" ? data.email.trim() : "";
 
   if (!name) {
@@ -1082,9 +1085,11 @@ app.put("/updateInventory/:id", async (req, res) => {
   const updates = {};
   for (const field of ALLOWED) {
     if (req.body[field] !== undefined) {
-      updates[field] = field === "year" || field === "mileage"
-        ? Number(req.body[field])
-        : String(req.body[field]).trim();
+      if (field === "year" || field === "mileage") {
+        updates[field] = Number(req.body[field]);
+      } else {
+        updates[field] = String(req.body[field]).trim();
+      }
     }
   }
 

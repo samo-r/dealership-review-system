@@ -9,7 +9,7 @@
  *   node smoke-test.js --host localhost --port 3030
  */
 
-/* jshint esversion: 8 */
+/* jshint esversion: 11, node: true */
 "use strict";
 
 const http = require("http");
@@ -54,12 +54,10 @@ const request = (method, path, payload, extraHeaders = {}) =>
       headers: {
         "Accept": "application/json",
         ...extraHeaders,
-        ...(bodyStr
-          ? {
-              "Content-Type":   "application/json",
-              "Content-Length": Buffer.byteLength(bodyStr),
-            }
-          : {}),
+        ...(bodyStr ? {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(bodyStr),
+        } : {}),
       },
     };
 
