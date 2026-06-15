@@ -82,13 +82,13 @@ flowchart LR
   end
 
   subgraph Data
-    SQLite[(SQLite<br/>Users & Auth)]
+    PG[(PostgreSQL / SQLite<br/>Users & Auth)]
     Mongo[(MongoDB<br/>Dealers · Reviews · Inventory)]
   end
 
   React -->|/djangoapp/*| Django
   Django --> Auth
-  Auth --> SQLite
+  Auth --> PG
   Orch --> Node
   Orch --> Sentiment
   Node --> Mongo
@@ -122,7 +122,7 @@ flowchart LR
 |------------|---------|
 | **Django 4.2** | API gateway, auth, RBAC enforcement |
 | **PyJWT** | Access / refresh token issue and validation |
-| **SQLite** | Custom `User` model (roles, `assigned_dealer_id`) |
+| **PostgreSQL / SQLite** | Custom `User` model (roles, `assigned_dealer_id`) |
 | **python-dotenv** | Environment configuration |
 | **requests** | Upstream calls to Node API and sentiment service |
 
@@ -139,7 +139,7 @@ flowchart LR
 
 | Store / Service | Responsibility |
 |-----------------|----------------|
-| **SQLite** (`db.sqlite3`) | Users, roles, Django admin |
+| **PostgreSQL** (Railway) or **SQLite** (`db.sqlite3`, local) | Users, roles, Django admin |
 | **MongoDB** | Dealerships, reviews, inventory documents |
 | **Sentiment microservice** | VADER lexicon analysis (`/analyze/<text>`) |
 
@@ -276,26 +276,27 @@ Use your own secure values for each variable. The tables below list **names only
 | `DJANGO_JWT_REFRESH_TTL_DAYS` | (Optional) Refresh token lifetime |
 | `DJANGO_JWT_SECRET_KEY` | (Optional) JWT signing key; defaults to `DJANGO_SECRET_KEY` |
 | `DJANGO_UPSTREAM_TIMEOUT` | (Optional) Seconds before upstream Node/sentiment calls time out |
-| `DJANGO_DB_FILENAME` | (Optional) SQLite filename, default `db.sqlite3` |
+| `DATABASE_URL` | PostgreSQL connection string (Railway sets this when Postgres is linked) |
+| `DATABASE_SSLMODE` | (Optional) Postgres SSL mode, e.g. `require` for external URLs |
+| `DJANGO_DB_FILENAME` | (Optional) Local SQLite filename when `DATABASE_URL` is unset |
+| `DJANGO_SUPERUSER_USERNAME` | (Optional) Bootstrap admin username on deploy |
+| `DJANGO_SUPERUSER_PASSWORD` | (Optional) Bootstrap admin password on deploy |
+| `DJANGO_SUPERUSER_EMAIL` | (Optional) Bootstrap admin email, default `admin@example.com` |
 
 ### Node API (`database/.env`)
 
 | Variable | Purpose |
 |----------|---------|
 | `PORT` | API listen port |
-| `MONGODB_URI` | MongoDB connection string (local) |
-| `MONGODB_URI_DOCKER` | MongoDB connection string (Docker Compose) |
+| `MONGODB_URI` | MongoDB connection string (Atlas `mongodb+srv://...` or local) |
 | `DB_NAME` | Database name |
 | `CORS_ORIGIN` | Allowed CORS origin |
-| `SEED_ON_START` | When `true`, clears MongoDB reviews/dealerships/inventory/counters on startup and reseeds dealerships from `data/dealerships.json` only |
+| `SEED_ON_START` | Default `false`. When `true`, clears MongoDB collections on startup and reseeds dealerships from `data/dealerships.json` |
 | `INTERNAL_API_KEY` | Shared secret for internal sentiment patch route (worker use) |
-| `REDIS_URL` | Redis connection string (worker + optional local Django publish) |
+| `REDIS_URL` | Redis/Upstash connection string (`rediss://` for Upstash) |
 | `SENTIMENT_QUEUE_NAME` | (Optional) Queue name, default `review_sentiment_queue` |
-| `backend_url` | Node API URL (worker container uses `http://api:3030`) |
-| `sentiment_analyzer_url` | Sentiment service URL (worker container uses `http://sentiment:5000`) |
-| `REDIS_URL_DOCKER` | Redis URL inside Docker Compose network |
-| `BACKEND_URL_DOCKER` | Node API URL inside Docker Compose network |
-| `SENTIMENT_ANALYZER_URL_DOCKER` | Sentiment service URL inside Docker Compose network |
+| `backend_url` | Node API URL (Docker worker default: `http://api:3030`) |
+| `sentiment_analyzer_url` | Sentiment service URL (Docker worker default: `http://sentiment:5000`) |
 | `SMOKE_TEST_HOST` | (Optional) Host for Node smoke tests |
 | `SMOKE_TEST_PORT` | (Optional) Port for Node smoke tests |
 
@@ -432,6 +433,25 @@ cd database && npm run smoke:health && npm run smoke:test
 ### Node data API (`http://127.0.0.1:3030`)
 
 Express routes for dealerships, reviews, and inventory. See `database/app.js` and `database/smoke-test.js` for the full route map.
+
+---
+
+## Railway deployment (Django)
+
+1. **Add PostgreSQL** — In your Railway project: New → Database → PostgreSQL.
+2. **Link Postgres to Django** — Open the Django service → Variables → add a reference to the Postgres service. Railway injects `DATABASE_URL`.
+3. **Set Django env vars** — At minimum:
+   - `DJANGO_SECRET_KEY`, `DJANGO_ENV=production`, `DJANGO_DEBUG=false`
+   - `DJANGO_ALLOWED_HOSTS` — your Railway hostname
+   - `DJANGO_CSRF_TRUSTED_ORIGINS` — your Vercel frontend URL
+   - `backend_url`, `REDIS_URL`, `INTERNAL_API_KEY`
+   - `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_PASSWORD`, `DJANGO_SUPERUSER_EMAIL`
+4. **Deploy** — The Dockerfile runs `migrate`, then `ensure_superuser` (creates admin only if missing), then gunicorn.
+5. **Verify** — Log in at `/admin` or via the React app with the bootstrap superuser.
+
+If you prefer not to store the admin password in env vars, omit the `DJANGO_SUPERUSER_*` variables and run `python manage.py createsuperuser` once from the Railway shell instead.
+
+For external Postgres URLs that require TLS, set `DATABASE_SSLMODE=require`.
 
 ---
 

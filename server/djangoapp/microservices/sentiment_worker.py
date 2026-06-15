@@ -14,9 +14,13 @@ import requests
 from dotenv import load_dotenv
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(BASE_DIR, "..", "..", ".env"))
-load_dotenv(os.path.join(BASE_DIR, "..", "..", "database", ".env"))
-load_dotenv(os.path.join(BASE_DIR, ".env"))
+for env_path in (
+    os.path.join(BASE_DIR, "..", "..", ".env"),
+    os.path.join(BASE_DIR, "..", "..", "database", ".env"),
+    os.path.join(BASE_DIR, ".env"),
+):
+    if os.path.isfile(env_path):
+        load_dotenv(env_path, override=False)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -42,6 +46,41 @@ REQUEST_TIMEOUT = int(os.getenv("SENTIMENT_WORKER_TIMEOUT", "10"))
 MAX_RETRIES = int(os.getenv("SENTIMENT_WORKER_MAX_RETRIES", "3"))
 RETRY_BACKOFF_SECONDS = [2, 5, 10]
 BLPOP_TIMEOUT = int(os.getenv("SENTIMENT_WORKER_BLPOP_TIMEOUT", "5"))
+
+
+def _redis_target_label(url):
+    if "upstash.io" in url:
+        return "Upstash Redis"
+    if url.startswith("rediss://"):
+        return "TLS Redis"
+    return "Redis"
+
+
+def verify_dependencies():
+    import redis
+
+    label = _redis_target_label(REDIS_URL)
+    try:
+        client = redis.from_url(REDIS_URL, decode_responses=True)
+        client.ping()
+        logger.info("Connected to %s.", label)
+    except Exception as err:
+        logger.error(
+            "Failed to connect to %s — %s. "
+            "Verify REDIS_URL (use rediss:// for Upstash) and credentials.",
+            label,
+            err,
+        )
+        raise SystemExit(1) from err
+
+    for name, url, path in (
+        ("Node API", BACKEND_URL, "/health"),
+        ("Sentiment analyzer", SENTIMENT_ANALYZER_URL, "/"),
+    ):
+        try:
+            requests.get(f"{url}{path}", timeout=REQUEST_TIMEOUT)
+        except Exception as err:
+            logger.warning("%s unreachable at %s — %s", name, url, err)
 
 
 def analyze_text(text):
@@ -122,8 +161,14 @@ def process_event(event):
 def run_worker():
     import redis
 
+    verify_dependencies()
+
     client = redis.from_url(REDIS_URL, decode_responses=True)
-    logger.info("Sentiment worker started. Queue=%s Redis=%s", SENTIMENT_QUEUE_NAME, REDIS_URL)
+    logger.info(
+        "Sentiment worker started. Queue=%s Redis=%s",
+        SENTIMENT_QUEUE_NAME,
+        _redis_target_label(REDIS_URL),
+    )
 
     while True:
         try:

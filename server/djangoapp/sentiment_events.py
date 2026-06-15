@@ -13,6 +13,14 @@ SENTIMENT_QUEUE_NAME = os.getenv("SENTIMENT_QUEUE_NAME", "review_sentiment_queue
 REDIS_URL = os.getenv("REDIS_URL", "").strip()
 
 
+def _redis_target_label(url):
+    if "upstash.io" in url:
+        return "Upstash Redis"
+    if url.startswith("rediss://"):
+        return "TLS Redis"
+    return "Redis"
+
+
 def _get_redis_client():
     if not REDIS_URL:
         return None
@@ -20,6 +28,33 @@ def _get_redis_client():
     import redis
 
     return redis.from_url(REDIS_URL, decode_responses=True)
+
+
+def verify_redis_connection():
+    """
+    Optional startup check — logs connectivity to Upstash/local Redis.
+    Returns True when a ping succeeds, False when Redis is unavailable.
+    """
+    if not REDIS_URL:
+        logger.warning(
+            "[redis] REDIS_URL is not set — sentiment queue publishing is disabled.",
+        )
+        return False
+
+    label = _redis_target_label(REDIS_URL)
+    try:
+        client = _get_redis_client()
+        client.ping()
+        logger.info("[redis] Connected to %s.", label)
+        return True
+    except Exception as err:
+        logger.error(
+            "[redis] Failed to connect to %s — %s. "
+            "Check REDIS_URL (use rediss:// for Upstash), token, and TLS.",
+            label,
+            err,
+        )
+        return False
 
 
 def publish_review_sentiment_event(event_type, review_id, text):

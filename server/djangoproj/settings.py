@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 import os
 from datetime import timedelta
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
@@ -160,12 +160,44 @@ WSGI_APPLICATION = "djangoproj.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / os.getenv("DJANGO_DB_FILENAME", "db.sqlite3"),
+
+def build_database_config(base_dir):
+    database_url = os.getenv("DATABASE_URL", "").strip()
+    if not database_url:
+        return {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": base_dir / os.getenv("DJANGO_DB_FILENAME", "db.sqlite3"),
+            }
+        }
+
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+    parsed = urlparse(database_url)
+    if parsed.scheme != "postgresql":
+        raise ImproperlyConfigured(
+            f"Unsupported DATABASE_URL scheme: {parsed.scheme}"
+        )
+
+    config = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": unquote(parsed.path.lstrip("/")),
+        "USER": unquote(parsed.username) if parsed.username else "",
+        "PASSWORD": unquote(parsed.password) if parsed.password else "",
+        "HOST": parsed.hostname or "",
+        "PORT": str(parsed.port or 5432),
+        "CONN_MAX_AGE": 600,
     }
-}
+
+    sslmode = os.getenv("DATABASE_SSLMODE", "").strip()
+    if sslmode:
+        config["OPTIONS"] = {"sslmode": sslmode}
+
+    return {"default": config}
+
+
+DATABASES = build_database_config(BASE_DIR)
 
 AUTH_USER_MODEL = "djangoapp.User"
 

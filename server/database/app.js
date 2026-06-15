@@ -32,7 +32,7 @@ const MONGODB_URI = requireEnv("MONGODB_URI");
 const DB_NAME = requireEnv("DB_NAME");
 const CORS_ORIGIN = requireEnv("CORS_ORIGIN");
 const SEED_ON_START =
-  requireEnv("SEED_ON_START").toLowerCase() === "true";
+  String(process.env.SEED_ON_START || "false").toLowerCase() === "true";
 const INTERNAL_API_KEY = requireEnv("INTERNAL_API_KEY");
 
 const SENTIMENT_LABELS = new Set(["positive", "neutral", "negative"]);
@@ -57,6 +57,41 @@ mongoose.connection.on("error", (error) => {
 mongoose.connection.on("disconnected", () => {
   console.warn("MongoDB disconnected.");
 });
+
+const describeMongoTarget = (uri) => {
+  try {
+    const normalized = uri.replace(/^mongodb(\+srv)?:/, "https:");
+    const parsed = new URL(normalized);
+    const host = parsed.host || "unknown-host";
+    const isAtlas = uri.includes("mongodb.net") || uri.includes("mongodb+srv");
+    return { host, isAtlas };
+  } catch {
+    return { host: "(invalid URI)", isAtlas: false };
+  }
+};
+
+const connectMongo = async () => {
+  const { host, isAtlas } = describeMongoTarget(MONGODB_URI);
+  console.log(
+    `[bootstrap] Connecting to MongoDB (${isAtlas ? "Atlas" : "self-hosted"}) at ${host}, db=${DB_NAME}...`,
+  );
+
+  try {
+    await mongoose.connect(MONGODB_URI, MONGODB_OPTIONS);
+    console.log(`[bootstrap] MongoDB connected: ${DB_NAME}`);
+  } catch (error) {
+    console.error("[bootstrap] Failed to connect to MongoDB.");
+    console.error(
+      `[bootstrap] Target: ${host} | DB: ${DB_NAME} | Error: ${error.message}`,
+    );
+    if (isAtlas) {
+      console.error(
+        "[bootstrap] Atlas checklist: verify MONGODB_URI credentials, IP allowlist (0.0.0.0/0 or platform egress), and cluster status.",
+      );
+    }
+    throw error;
+  }
+};
 
 app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json());
@@ -1141,8 +1176,7 @@ const startServer = async () => {
       `[bootstrap] Configuration loaded: PORT=${PORT}, DB_NAME=${DB_NAME}, SEED_ON_START=${SEED_ON_START}`,
     );
     // Deterministic startup order: connect DB -> optional seed -> start HTTP listener.
-    await mongoose.connect(MONGODB_URI, MONGODB_OPTIONS);
-    console.log(`Connected to MongoDB database: ${DB_NAME}`);
+    await connectMongo();
     validateEncryptionKey();
     console.log("[bootstrap] Chassis encryption key validated.");
 
@@ -1159,10 +1193,8 @@ const startServer = async () => {
     await syncReviewCounter();
     await syncDealershipCounter();
 
-    httpServer = app.listen(PORT, () => {
-      console.log(
-        `[bootstrap] API service is ready at http://localhost:${PORT}`,
-      );
+    httpServer = app.listen(PORT, "0.0.0.0", () => {
+      console.log(`[bootstrap] API service is ready on port ${PORT}`);
     });
   } catch (error) {
     console.error("[bootstrap] Failed to bootstrap API service.");

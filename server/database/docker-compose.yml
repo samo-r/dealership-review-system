@@ -1,6 +1,7 @@
 services:
-  # Mongodb service
+  # Optional local MongoDB — use profile: docker compose --profile local up
   mongo_db:
+    profiles: ["local"]
     container_name: db_container
     image: mongo:latest
     ports:
@@ -15,7 +16,9 @@ services:
       retries: 6
       start_period: 15s
 
+  # Optional local Redis — use profile: docker compose --profile local up
   redis:
+    profiles: ["local"]
     container_name: redis_container
     image: redis:7-alpine
     ports:
@@ -28,7 +31,7 @@ services:
       retries: 6
       start_period: 10s
 
-  # Node api service — built from local Dockerfile (do not pull from Docker Hub)
+  # Node data API — uses MONGODB_URI from .env (Atlas or local)
   api:
     build:
       context: .
@@ -40,10 +43,10 @@ services:
       - .env
     environment:
       PORT: ${PORT:-3030}
-      MONGODB_URI: ${MONGODB_URI_DOCKER}
+      MONGODB_URI: ${MONGODB_URI}
       DB_NAME: ${DB_NAME}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
-      SEED_ON_START: ${SEED_ON_START:-true}
+      SEED_ON_START: ${SEED_ON_START:-false}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       CHASSIS_ENCRYPTION_KEY: ${CHASSIS_ENCRYPTION_KEY}
     restart: always
@@ -59,9 +62,6 @@ services:
       timeout: 5s
       retries: 6
       start_period: 20s
-    depends_on:
-      mongo_db:
-        condition: service_healthy
 
   sentiment:
     container_name: sentiment_container
@@ -96,13 +96,13 @@ services:
     env_file:
       - .env
     environment:
-      REDIS_URL: ${REDIS_URL_DOCKER:-redis://redis:6379/0}
-      backend_url: ${BACKEND_URL_DOCKER:-http://api:3030}
-      sentiment_analyzer_url: ${SENTIMENT_ANALYZER_URL_DOCKER:-http://sentiment:5000}
+      REDIS_URL: ${REDIS_URL}
+      SENTIMENT_QUEUE_NAME: ${SENTIMENT_QUEUE_NAME:-review_sentiment_queue}
+      backend_url: http://api:3030
+      sentiment_analyzer_url: http://sentiment:5000
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
     restart: always
     depends_on:
-      redis:
-        condition: service_healthy
       api:
         condition: service_healthy
       sentiment:
