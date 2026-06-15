@@ -60,7 +60,7 @@ const DealerInventory = () => {
     } finally {
       setLoading(false);
     }
-  }, [dealerId]);
+  }, [dealerId, authHeaders]);
 
   useEffect(() => {
     fetchInventory();

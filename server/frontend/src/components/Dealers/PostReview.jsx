@@ -136,7 +136,7 @@ const PostReview = () => {
 
     fetchDealer();
     fetchInventoryOptions();
-  }, [id, token]);
+  }, [id, token, authHeaders, logout, navigate]);
 
   return (
     <div className="w-full py-10">

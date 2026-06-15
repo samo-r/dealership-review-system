@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useCallback, useContext, useState } from "react";
 
 const AuthContext = createContext(null);
 
@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }) => {
     return true;
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     sessionStorage.removeItem(ACCESS_TOKEN_KEY);
     sessionStorage.removeItem(REFRESH_TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
@@ -92,11 +92,13 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     setRole(null);
-  };
+  }, []);
 
   /** Returns the Authorization header object for fetch calls. */
-  const authHeaders = () =>
-    token ? { Authorization: `Bearer ${token}` } : {};
+  const authHeaders = useCallback(
+    () => (token ? { Authorization: `Bearer ${token}` } : {}),
+    [token],
+  );
 
   const isAuthenticated = Boolean(token && user?.userName);
 

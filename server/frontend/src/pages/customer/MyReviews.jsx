@@ -50,7 +50,7 @@ const MyReviews = () => {
     };
 
     fetchMyReviews();
-  }, [user]);
+  }, [user, authHeaders, logout]);
 
   const sentimentCounts = useMemo(
     () => ({

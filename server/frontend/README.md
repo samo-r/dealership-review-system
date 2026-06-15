@@ -1,6 +1,44 @@
-# Getting Started with Create React App
+# Autocars UG — React frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Local development
+
+1. Copy `.env.example` to `.env`.
+2. Ensure Django is running on `http://127.0.0.1:8000` (or adjust `REACT_APP_DJANGO_PROXY_URL`).
+3. Run `npm start` — the dev server proxies `/djangoapp/*` to Django.
+
+## Vercel deployment
+
+### 1. Edit `vercel.json`
+
+Replace the placeholder Django host with your **Railway Django public URL** (no trailing slash):
+
+```json
+"destination": "https://YOUR-ACTUAL-DJANGO.up.railway.app/djangoapp/:path*"
+```
+
+This proxies browser requests from your Vercel domain to Django. No extra frontend env vars are required.
+
+### 2. Vercel project settings
+
+| Setting | Value |
+|---------|--------|
+| Root Directory | `server/frontend` |
+| Build Command | `npm run build` |
+| Output Directory | `build` |
+| Install Command | `npm install` |
+
+### 3. Backend alignment (after first Vercel deploy)
+
+Update these on **Railway** using your live Vercel URL (e.g. `https://your-app.vercel.app`):
+
+| Service | Variable |
+|---------|----------|
+| Django | `DJANGO_CSRF_TRUSTED_ORIGINS` |
+| Node API | `CORS_ORIGIN` |
+
+Redeploy Django and Node if you change them.
+
+---
 
 ## Available Scripts
 

@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/djangoapp/:path*",
+      "destination": "https://your-django-service.up.railway.app/djangoapp/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
