@@ -4,10 +4,10 @@ const path = require("path");
 
 // In Docker, env vars come from Compose `environment` / `env_file` on the host.
 // dotenv only supplements local `npm start` when database/.env exists on disk.
-const dotenvResult = require("dotenv").config({
+/*const dotenvResult = require("dotenv").config({
   path: path.join(__dirname, ".env"),
   override: true, // Override the .env injection 
-});
+});*/  //Uncomment during local development and testing 
 if (dotenvResult.error && !process.env.PORT) {
   console.warn(
     "[bootstrap] No database/.env file found; relying on process environment variables.",
