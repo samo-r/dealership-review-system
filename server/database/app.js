@@ -7,12 +7,12 @@ const path = require("path");
 /*const dotenvResult = require("dotenv").config({
   path: path.join(__dirname, ".env"),
   override: true, // Override the .env injection 
-});*/  //Uncomment during local development and testing 
+});
 if (dotenvResult.error && !process.env.PORT) {
   console.warn(
     "[bootstrap] No database/.env file found; relying on process environment variables.",
   );
-}
+}*/  //Uncomment during local development and testing 
 const mongoose = require("mongoose");
 const fs = require("fs");
 const cors = require("cors");
