@@ -1,16 +1,12 @@
 {
-  "rewrites": {
-    "beforeFiles": [
-      {
-        "source": "/djangoapp/:path*",
-        "destination": "https://autocarsugdjangoapi-production.up.railway.app/djangoapp/:path*"
-      }
-    ],
-    "fallback": [
-      {
-        "source": "/(.*)",
-        "destination": "/index.html"
-      }
-    ]
-  }
+  "rewrites": [
+    {
+      "source": "/djangoapp/:path*",
+      "destination": "/api/djangoapp/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }

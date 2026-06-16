@@ -8,15 +8,11 @@
 
 ## Vercel deployment
 
-### 1. Edit `vercel.json`
+### 1. API proxy
 
-Replace the placeholder Django host with your **Railway Django public URL** (no trailing slash):
+`/djangoapp/*` is rewritten to a Vercel serverless function at `api/djangoapp/[...path].js`, which forwards **GET and POST** to Django on Railway. This avoids POST requests hitting `index.html` (405).
 
-```json
-"destination": "https://YOUR-ACTUAL-DJANGO.up.railway.app/djangoapp/:path*"
-```
-
-This proxies browser requests from your Vercel domain to Django. No extra frontend env vars are required.
+Optional on Vercel (server-side only): set `DJANGO_API_URL` to your Railway Django URL if it differs from the default in `api/djangoapp/[...path].js`.
 
 ### 2. Vercel project settings
 
