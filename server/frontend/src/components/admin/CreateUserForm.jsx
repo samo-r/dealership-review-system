@@ -1,3 +1,4 @@
+import { getApiUrl } from "../../utils/apiBridge";
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -34,7 +35,7 @@ const CreateUserForm = ({ title = "Create User", description }) => {
   useEffect(() => {
     const loadDealers = async () => {
       try {
-        const response = await fetch(`${window.location.origin}/djangoapp/get_dealers`, {
+        const response = await fetch(getApiUrl(`/djangoapp/get_dealers`), {
           headers: { ...authHeaders() },
         });
 
@@ -111,7 +112,7 @@ const CreateUserForm = ({ title = "Create User", description }) => {
     setSubmitting(true);
     try {
       const response = await fetch(
-        `${window.location.origin}/djangoapp/admin/create_dealer_admin`,
+        getApiUrl(`/djangoapp/admin/create_dealer_admin`),
         {
           method: "POST",
           headers: {

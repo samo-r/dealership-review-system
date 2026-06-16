@@ -1,3 +1,4 @@
+import { getApiUrl } from "../../utils/apiBridge";
 import React, { useState, useEffect } from "react";
 import DealershipCard from "../common/DealershipCard";
 import ActionButton from "../common/ActionButton";
@@ -18,7 +19,7 @@ const Dealers = () => {
   useEffect(() => {
     const fetchDealers = async () => {
       try {
-        const res = await fetch("/djangoapp/get_dealers");
+        const res = await fetch(getApiUrl("/djangoapp/get_dealers"));
         const data = await res.json();
         if (data.status === 200) {
           const dealers = Array.from(data.dealers);

@@ -1,3 +1,4 @@
+import { getApiUrl } from "../../utils/apiBridge";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -12,7 +13,7 @@ const AdminDealerships = () => {
   useEffect(() => {
     const loadDealers = async () => {
       try {
-        const response = await fetch(`${window.location.origin}/djangoapp/get_dealers`, {
+        const response = await fetch(getApiUrl(`/djangoapp/get_dealers`), {
           headers: { ...authHeaders() },
         });
 

@@ -1,3 +1,4 @@
+import { getApiUrl } from "../../utils/apiBridge";
 import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import positive_icon from "../assets/positive.png";
@@ -27,7 +28,7 @@ const Dealer = () => {
   useEffect(() => {
     const fetchDealer = async () => {
       try {
-        const res = await fetch(`/djangoapp/dealer/${id}`);
+        const res = await fetch(getApiUrl(`/djangoapp/dealer/${id}`));
         const data = await res.json();
         if (data.status === 200 && Array.isArray(data.dealer)) {
           setDealer(data.dealer[0] || null);
@@ -41,7 +42,7 @@ const Dealer = () => {
 
     const fetchReviews = async () => {
       try {
-        const res = await fetch(`/djangoapp/reviews/dealer/${id}`);
+        const res = await fetch(getApiUrl(`/djangoapp/reviews/dealer/${id}`));
         const data = await res.json();
         if (data.status === 200 && Array.isArray(data.reviews)) {
           setReviews(data.reviews);

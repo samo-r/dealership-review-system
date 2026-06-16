@@ -1,3 +1,4 @@
+import { getApiUrl } from "../../utils/apiBridge";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import ReviewCard from "../../components/common/ReviewCard";
@@ -19,7 +20,7 @@ const MyReviews = () => {
       }
 
       try {
-        const response = await fetch(`${window.location.origin}/djangoapp/reviews/me`, {
+        const response = await fetch(getApiUrl(`/djangoapp/reviews/me`), {
           headers: {
             ...authHeaders(),
           },

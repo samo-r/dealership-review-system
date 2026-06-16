@@ -1,3 +1,4 @@
+import { getApiUrl } from "../../utils/apiBridge";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -49,7 +50,7 @@ const CreateDealership = () => {
     setSubmitting(true);
     try {
       const response = await fetch(
-        `${window.location.origin}/djangoapp/admin/dealerships`,
+        getApiUrl(`/djangoapp/admin/dealerships`),
         {
           method: "POST",
           headers: {

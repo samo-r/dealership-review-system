@@ -1,3 +1,4 @@
+import { getApiUrl } from "../../utils/apiBridge";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import ReviewCard from "../../components/common/ReviewCard";
@@ -26,7 +27,7 @@ const DealerReviews = () => {
     const fetchReviews = async () => {
       try {
         const res = await fetch(
-          `${window.location.origin}/djangoapp/reviews/dealer/${dealerId}`
+          getApiUrl(`/djangoapp/reviews/dealer/${dealerId}`)
         );
         const data = await res.json();
 
