@@ -131,7 +131,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -277,15 +276,6 @@ STATICFILES_DIRS = [
     path for path in [
         FRONTEND_STATIC_DIR,
         FRONTEND_BUILD_STATIC_DIR] if os.path.isdir(path)]
-
-STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
-    },
-}
 
 # This section fixes the proxy issue in the browser
 # Tells Django the proxy is secure

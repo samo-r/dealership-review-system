@@ -42,8 +42,6 @@ spa_routes = [
     path("admin/users", spa_index_view),
     path("admin/inventory/", spa_index_view),
     path("admin/inventory", spa_index_view),
-    path("admin/moderation/", spa_index_view),
-    path("admin/moderation", spa_index_view),
     re_path(r"^about/?$", spa_index_view),
     re_path(r"^contact/?$", spa_index_view),
 ]
