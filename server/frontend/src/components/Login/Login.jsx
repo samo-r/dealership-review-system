@@ -27,16 +27,13 @@ const Login = () => {
 
     setSubmitting(true);
     try {
-      const res = await fetch(
-        "https://autocarsugdjangoapi-production.up.railway.app/djangoapp/login/",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ userName: trimmedUser, password }),
+      const res = await fetch("/djangoapp/login/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({ userName: trimmedUser, password }),
+      });
 
       let json = {};
       try {
