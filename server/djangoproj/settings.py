@@ -119,6 +119,7 @@ REST_FRAMEWORK = {
 # Application definition
 
 INSTALLED_APPS = [
+    "corsheaders",
     "djangoapp.apps.DjangoappConfig",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -130,6 +131,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -325,3 +327,8 @@ LOGGING = {
         },
     },
 }
+
+# CORS Settings
+CORS_ALLOWED_ORIGINS = [
+    "https://autocarsug-r4znlt619-samo-r1.vercel.app",
+]
