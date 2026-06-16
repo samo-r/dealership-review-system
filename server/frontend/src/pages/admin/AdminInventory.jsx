@@ -1,4 +1,3 @@
-import { djangoApiUrl } from "../../utils/djangoApi";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -23,7 +22,7 @@ const AdminInventory = () => {
     setLoading(true);
     setError("");
     try {
-      const dealersRes = await fetch(djangoApiUrl(`/djangoapp/get_dealers`), {
+      const dealersRes = await fetch(`${window.location.origin}/djangoapp/get_dealers`, {
         headers: { ...authHeaders() },
       });
 
@@ -49,7 +48,7 @@ const AdminInventory = () => {
         dealershipList.map(async (dealer) => {
           try {
             const response = await fetch(
-              djangoApiUrl(`/djangoapp/inventory/dealer/${dealer.id}`),
+              `${window.location.origin}/djangoapp/inventory/dealer/${dealer.id}`,
               { headers: { ...authHeaders() } }
             );
 

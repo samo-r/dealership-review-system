@@ -1,4 +1,3 @@
-import { djangoApiUrl } from "../../utils/djangoApi";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { hasCapability } from "../../utils/roleCapabilities";
@@ -32,7 +31,7 @@ const DealerProfile = () => {
     const fetchDealership = async () => {
       try {
         const res = await fetch(
-          djangoApiUrl(`/djangoapp/dealer/${dealerId}`)
+          `${window.location.origin}/djangoapp/dealer/${dealerId}`
         );
         const data = await res.json();
         const dealer = Array.isArray(data.dealer) ? data.dealer[0] : data.dealer;
@@ -91,7 +90,7 @@ const DealerProfile = () => {
 
     try {
       const response = await fetch(
-        djangoApiUrl(`/djangoapp/dealer/${dealerId}/update`),
+        `${window.location.origin}/djangoapp/dealer/${dealerId}/update`,
         {
           method: "PUT",
           headers: {

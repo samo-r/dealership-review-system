@@ -1,4 +1,3 @@
-import { djangoApiUrl } from "../../utils/djangoApi";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReviewCard from "../../components/common/ReviewCard";
 import ConfirmDialog from "../../components/admin/ConfirmDialog";
@@ -18,7 +17,7 @@ const AdminModeration = () => {
     setLoading(true);
     setError("");
     try {
-      const dealersRes = await fetch(djangoApiUrl(`/djangoapp/get_dealers`), {
+      const dealersRes = await fetch(`${window.location.origin}/djangoapp/get_dealers`, {
         headers: { ...authHeaders() },
       });
 
@@ -39,7 +38,7 @@ const AdminModeration = () => {
       for (const dealer of dealerships) {
         try {
           const reviewRes = await fetch(
-            djangoApiUrl(`/djangoapp/reviews/dealer/${dealer.id}`)
+            `${window.location.origin}/djangoapp/reviews/dealer/${dealer.id}`
           );
           const reviewData = await reviewRes.json();
           if (reviewData.status === 200 && reviewData.reviews) {
@@ -99,7 +98,7 @@ const AdminModeration = () => {
     setActionError("");
     try {
       const response = await fetch(
-        djangoApiUrl(`/djangoapp/reviews/${pendingDeleteId}/delete`),
+        `${window.location.origin}/djangoapp/reviews/${pendingDeleteId}/delete`,
         {
           method: "DELETE",
           headers: { ...authHeaders() },
@@ -131,7 +130,7 @@ const AdminModeration = () => {
     setActionError("");
     try {
       const response = await fetch(
-        djangoApiUrl(`/djangoapp/reviews/${reviewId}/update`),
+        `${window.location.origin}/djangoapp/reviews/${reviewId}/update`,
         {
           method: "PUT",
           headers: {

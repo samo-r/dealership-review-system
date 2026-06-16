@@ -1,4 +1,3 @@
-import { djangoApiUrl } from "../../utils/djangoApi";
 import React, { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -28,7 +27,7 @@ const Login = () => {
 
     setSubmitting(true);
     try {
-      const res = await fetch(djangoApiUrl("/djangoapp/login/"), {
+      const res = await fetch("/djangoapp/login/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

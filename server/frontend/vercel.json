@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/djangoapp/:path*",
+      "destination": "https://autocarsugdjangoapi-production.up.railway.app/djangoapp/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

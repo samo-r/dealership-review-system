@@ -1,4 +1,3 @@
-import { djangoApiUrl } from "../utils/djangoApi";
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import ReviewCard from "../components/common/ReviewCard";
@@ -16,7 +15,7 @@ const Reviews = () => {
       try {
         // First, get all dealerships
         const dealeRes = await fetch(
-          djangoApiUrl(`/djangoapp/get_dealers`)
+          `${window.location.origin}/djangoapp/get_dealers`
         );
         const dealeData = await dealeRes.json();
         if (dealeData.status !== 200) {
@@ -31,7 +30,7 @@ const Reviews = () => {
         for (const dealer of dealerships) {
           try {
             const reviewRes = await fetch(
-              djangoApiUrl(`/djangoapp/reviews/dealer/${dealer.id}`)
+              `${window.location.origin}/djangoapp/reviews/dealer/${dealer.id}`
             );
             const reviewData = await reviewRes.json();
             if (reviewData.status === 200 && reviewData.reviews) {
