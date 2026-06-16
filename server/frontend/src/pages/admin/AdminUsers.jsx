@@ -1,4 +1,3 @@
-import { getApiUrl } from "../../utils/apiBridge";
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import AdminPageHeader from "../../components/admin/AdminPageHeader";
@@ -12,7 +11,7 @@ const AdminUsers = () => {
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const response = await fetch(getApiUrl(`/djangoapp/admin/users`), {
+        const response = await fetch(`${window.location.origin}/djangoapp/admin/users`, {
           headers: { ...authHeaders() },
         });
 

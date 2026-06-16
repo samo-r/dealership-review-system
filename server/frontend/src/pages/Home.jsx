@@ -1,4 +1,3 @@
-import { getApiUrl } from "../utils/apiBridge";
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import DealershipCard from "../components/common/DealershipCard";
@@ -20,7 +19,7 @@ const Home = () => {
       try {
         // Fetch dealerships
         const dealeRes = await fetch(
-          getApiUrl(`/djangoapp/get_dealers`)
+          `${window.location.origin}/djangoapp/get_dealers`
         );
         const dealeData = await dealeRes.json();
         const dealershipList = dealeData.status === 200 ? dealeData.dealers || [] : [];
@@ -32,7 +31,7 @@ const Home = () => {
           dealershipList.map(async (dealer) => {
             try {
               const reviewRes = await fetch(
-                getApiUrl(`/djangoapp/reviews/dealer/${dealer.id}`)
+                `${window.location.origin}/djangoapp/reviews/dealer/${dealer.id}`
               );
               const reviewData = await reviewRes.json();
               if (reviewData.status === 200 && reviewData.reviews) {

@@ -1,4 +1,3 @@
-import { getApiUrl } from "../../utils/apiBridge";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -27,10 +26,10 @@ const AdminOverview = () => {
     const loadStats = async () => {
       try {
         const [dealersRes, usersRes] = await Promise.all([
-          fetch(getApiUrl(`/djangoapp/get_dealers`), {
+          fetch(`${window.location.origin}/djangoapp/get_dealers`, {
             headers: { ...authHeaders() },
           }),
-          fetch(getApiUrl(`/djangoapp/admin/users`), {
+          fetch(`${window.location.origin}/djangoapp/admin/users`, {
             headers: { ...authHeaders() },
           }),
         ]);
@@ -56,7 +55,7 @@ const AdminOverview = () => {
 
         const reviewResponses = await Promise.all(
           dealers.map((dealer) =>
-            fetch(getApiUrl(`/djangoapp/reviews/dealer/${dealer.id}`)).then(
+            fetch(`${window.location.origin}/djangoapp/reviews/dealer/${dealer.id}`).then(
               (res) => res.json()
             )
           )

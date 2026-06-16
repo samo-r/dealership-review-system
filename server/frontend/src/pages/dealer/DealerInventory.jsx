@@ -1,4 +1,3 @@
-import { getApiUrl } from "../../utils/apiBridge";
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import VehicleForm from "../../components/common/VehicleForm";
@@ -42,7 +41,7 @@ const DealerInventory = () => {
     }
     try {
       const res = await fetch(
-        getApiUrl(`/djangoapp/inventory/dealer/${dealerId}`),
+        `${window.location.origin}/djangoapp/inventory/dealer/${dealerId}`,
         {
           headers: {
             ...authHeaders(),
@@ -75,7 +74,7 @@ const DealerInventory = () => {
     setError(null);
     try {
       const res = await fetch(
-        getApiUrl(`/djangoapp/inventory/add`),
+        `${window.location.origin}/djangoapp/inventory/add`,
         {
           method: "POST",
           headers: {
@@ -111,7 +110,7 @@ const DealerInventory = () => {
     try {
       const vehicleId = editingVehicle._id;
       const res = await fetch(
-        getApiUrl(`/djangoapp/inventory/${vehicleId}/update`),
+        `${window.location.origin}/djangoapp/inventory/${vehicleId}/update`,
         {
           method: "PUT",
           headers: {
@@ -146,7 +145,7 @@ const DealerInventory = () => {
     setError(null);
     try {
       const res = await fetch(
-        getApiUrl(`/djangoapp/inventory/${vehicleId}/delete`),
+        `${window.location.origin}/djangoapp/inventory/${vehicleId}/delete`,
         {
           method: "DELETE",
           headers: {
