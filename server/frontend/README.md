@@ -6,37 +6,31 @@
 2. Ensure Django is running on `http://127.0.0.1:8000` (or adjust `REACT_APP_DJANGO_PROXY_URL`).
 3. Run `npm start` — the dev server proxies `/djangoapp/*` to Django.
 
-## Vercel deployment
+## Railway deployment (served by Django)
 
-### 1. Edit `vercel.json`
+The frontend is **not** deployed as a separate service. Railway builds it inside the Django Docker image (`server/Dockerfile`) and Django serves:
 
-Replace the placeholder Django host with your **Railway Django public URL** (no trailing slash):
+| Path | Served by |
+|------|-----------|
+| `/`, `/login/`, `/dealers/`, … | React `index.html` (SPA routes in `djangoproj/urls.py`) |
+| `/static/js/…`, `/static/css/…` | WhiteNoise (`collectstatic` at container start) |
+| `/djangoapp/*` | Django API |
 
-```json
-"destination": "https://YOUR-ACTUAL-DJANGO.up.railway.app/djangoapp/:path*"
+### What you need to do
+
+1. **Push to Railway** — rebuild the Django service (root: `server/`, uses `Dockerfile`).
+2. **No Vercel** — remove any Vercel project or stop using `vercel.json` (deleted from this repo).
+3. **No production `REACT_APP_*` vars** — API calls use same-origin `/djangoapp/...` relative URLs.
+4. **Railway Django env** (not in this folder) — set `DJANGO_ALLOWED_HOSTS` and `DJANGO_CSRF_TRUSTED_ORIGINS` to your Railway public URL.
+
+### Local production smoke test
+
+```bash
+npm run build
+cd .. && python manage.py collectstatic --noinput && python manage.py runserver
 ```
 
-This proxies browser requests from your Vercel domain to Django. No extra frontend env vars are required.
-
-### 2. Vercel project settings
-
-| Setting | Value |
-|---------|--------|
-| Root Directory | `server/frontend` |
-| Build Command | `npm run build` |
-| Output Directory | `build` |
-| Install Command | `npm install` |
-
-### 3. Backend alignment (after first Vercel deploy)
-
-Update these on **Railway** using your live Vercel URL (e.g. `https://your-app.vercel.app`):
-
-| Service | Variable |
-|---------|----------|
-| Django | `DJANGO_CSRF_TRUSTED_ORIGINS` |
-| Node API | `CORS_ORIGIN` |
-
-Redeploy Django and Node if you change them.
+Open `http://127.0.0.1:8000/` — UI and `/djangoapp/*` should both work on one origin.
 
 ---
 
