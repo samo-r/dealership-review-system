@@ -1,3 +1,4 @@
+import { djangoApiUrl } from "../../utils/djangoApi";
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -26,7 +27,7 @@ const DealerOverview = () => {
       try {
         // Fetch dealership info
         const dealerRes = await fetch(
-          `${window.location.origin}/djangoapp/dealer/${dealerId}`
+          djangoApiUrl(`/djangoapp/dealer/${dealerId}`)
         );
         const dealerData = await dealerRes.json();
         if (dealerData.status === 200) {
@@ -37,7 +38,7 @@ const DealerOverview = () => {
 
         // Fetch reviews for sentiment breakdown
         const reviewRes = await fetch(
-          `${window.location.origin}/djangoapp/reviews/dealer/${dealerId}`
+          djangoApiUrl(`/djangoapp/reviews/dealer/${dealerId}`)
         );
         const reviewData = await reviewRes.json();
         // Accept reviews when provided even if the response shape varies

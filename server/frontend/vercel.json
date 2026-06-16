@@ -1,19 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/djangoapp/:path*",
-      "destination": "https://autocarsugdjangoapi-production.up.railway.app/djangoapp/:path*"
-    },
-    {
       "source": "/(.*)",
-      "destination": "/index.html",
-      "has": [
-        {
-          "type": "header",
-          "key": "accept",
-          "value": ".*text/html.*"
-        }
-      ]
+      "destination": "/index.html"
     }
   ]
 }

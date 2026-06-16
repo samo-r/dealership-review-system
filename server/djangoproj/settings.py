@@ -328,7 +328,8 @@ LOGGING = {
     },
 }
 
-# CORS Settings
-CORS_ALLOWED_ORIGINS = [
-    "https://autocarsug-r4znlt619-samo-r1.vercel.app",
-]
+# CORS — browser calls Django directly from the Vercel frontend in production
+CORS_ALLOWED_ORIGINS = env_list(
+    "DJANGO_CORS_ALLOWED_ORIGINS",
+    ["http://localhost:3000"],
+)

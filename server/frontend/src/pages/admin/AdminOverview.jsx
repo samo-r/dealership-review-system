@@ -1,3 +1,4 @@
+import { djangoApiUrl } from "../../utils/djangoApi";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -26,10 +27,10 @@ const AdminOverview = () => {
     const loadStats = async () => {
       try {
         const [dealersRes, usersRes] = await Promise.all([
-          fetch(`${window.location.origin}/djangoapp/get_dealers`, {
+          fetch(djangoApiUrl(`/djangoapp/get_dealers`), {
             headers: { ...authHeaders() },
           }),
-          fetch(`${window.location.origin}/djangoapp/admin/users`, {
+          fetch(djangoApiUrl(`/djangoapp/admin/users`), {
             headers: { ...authHeaders() },
           }),
         ]);
@@ -55,7 +56,7 @@ const AdminOverview = () => {
 
         const reviewResponses = await Promise.all(
           dealers.map((dealer) =>
-            fetch(`${window.location.origin}/djangoapp/reviews/dealer/${dealer.id}`).then(
+            fetch(djangoApiUrl(`/djangoapp/reviews/dealer/${dealer.id}`)).then(
               (res) => res.json()
             )
           )

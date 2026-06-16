@@ -1,3 +1,4 @@
+import { djangoApiUrl } from "../../utils/djangoApi";
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -58,7 +59,7 @@ const PostReview = () => {
 
     setSaving(true);
     try {
-      const res = await fetch(`/djangoapp/add_review`, {
+      const res = await fetch(djangoApiUrl(`/djangoapp/add_review`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -89,7 +90,7 @@ const PostReview = () => {
   useEffect(() => {
     const fetchDealer = async () => {
       try {
-        const res = await fetch(`/djangoapp/dealer/${id}`);
+        const res = await fetch(djangoApiUrl(`/djangoapp/dealer/${id}`));
         const data = await res.json();
         if (data.status === 200 && Array.isArray(data.dealer)) {
           setDealer(data.dealer[0] || null);
@@ -110,7 +111,7 @@ const PostReview = () => {
 
       setInventoryLoading(true);
       try {
-        const res = await fetch(`/djangoapp/inventory/dealer/${id}/options`, {
+        const res = await fetch(djangoApiUrl(`/djangoapp/inventory/dealer/${id}/options`), {
           headers: authHeaders(),
         });
 
