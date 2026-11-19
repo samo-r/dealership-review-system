@@ -1,7 +1,6 @@
-from flask import Flask
+from flask import Flask, jsonify, request
 from nltk.tokenize import sent_tokenize
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-import json
 import logging
 import os
 
@@ -34,20 +33,15 @@ def env_bool(name, default=False):
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def average_sentence_compound(text):
-    sentences = sent_tokenize(text.strip())
-    if not sentences:
-        return analyzer.polarity_scores(text.strip()).get("compound", 0.0)
-
-    compounds = [
-        analyzer.polarity_scores(sentence).get("compound", 0.0)
-        for sentence in sentences
-        if sentence.strip()
-    ]
-    if not compounds:
+def compound_score(text):
+    """
+    VADER compound on the full review text.
+    Do not average per-sentence scores — that misclassifies mixed reviews.
+    """
+    cleaned = (text or "").strip()
+    if not cleaned:
         return 0.0
-
-    return sum(compounds) / len(compounds)
+    return analyzer.polarity_scores(cleaned).get("compound", 0.0)
 
 
 def classify_compound_score(score):
@@ -58,35 +52,52 @@ def classify_compound_score(score):
     return "neutral"
 
 
+def analyze_text(text):
+    cleaned = (text or "").strip()
+    if not cleaned:
+        return "neutral", 0.0, 0
+
+    compound = compound_score(cleaned)
+    label = classify_compound_score(compound)
+    sentence_count = len([s for s in sent_tokenize(cleaned) if s.strip()])
+    return label, compound, sentence_count
+
+
 @app.get("/")
 def home():
     return (
         "Welcome to the Sentiment Analyzer. "
-        "Use /analyze/<text> to get the sentiment."
+        "Use POST /analyze with JSON {\"text\": \"...\"}."
     )
 
 
-@app.get("/analyze/<input_txt>")
-def analyze_sentiment(input_txt):
-    text = (input_txt or "").strip()
-    if not text:
-        label = "neutral"
-        logger.info(
-            "sentiment=neutral avg_compound=0.000 sentences=0 (empty input)")
-        return json.dumps({"sentiment": label})
-
-    avg_compound = average_sentence_compound(text)
-    label = classify_compound_score(avg_compound)
-    sentence_count = len(sent_tokenize(text))
+@app.post("/analyze")
+def analyze_sentiment_post():
+    data = request.get_json(silent=True) or {}
+    text = data.get("text", "")
+    label, compound, sentence_count = analyze_text(text)
 
     logger.info(
-        "sentiment=%s avg_compound=%.3f sentences=%s",
+        "sentiment=%s compound=%.3f sentences=%s",
         label,
-        avg_compound,
+        compound,
         sentence_count,
     )
+    return jsonify({"sentiment": label})
 
-    return json.dumps({"sentiment": label})
+
+@app.get("/analyze/<path:input_txt>")
+def analyze_sentiment_get(input_txt):
+    """Legacy GET route — prefer POST for long or special-character text."""
+    label, compound, sentence_count = analyze_text(input_txt)
+
+    logger.info(
+        "sentiment=%s compound=%.3f sentences=%s",
+        label,
+        compound,
+        sentence_count,
+    )
+    return jsonify({"sentiment": label})
 
 
 if __name__ == "__main__":

@@ -132,6 +132,19 @@ dmypy.json
 
 # Node and frontend artifacts
 node_modules/
+/server/database/node_modules/
+/server/frontend/build/
+
+# Python virtual environments & packages
+venv/
+env/
+ENV/
+.venv/
+server/venv/
+
+# NLTK / Sentiment Runtime Assets
+/server/djangoapp/microservices/sentiment/vader_lexicon/
+/server/djangoapp/microservices/sentiment/vader_lexicon.zip
 
 # Local virtualenvs created for isolated Python environments
 trial-env/

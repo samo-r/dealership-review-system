@@ -93,10 +93,13 @@ def get_request(endpoint, **kwargs):
 
 # Function to handle sentiment analyzer API request
 def analyze_review_sentiments(text):
-    request_url = sentiment_analyzer_url + "/analyze/" + text
+    request_url = sentiment_analyzer_url + "/analyze"
     try:
-        # Call get method of requests library with URL and parameters
-        response = requests.get(request_url, timeout=REQUEST_TIMEOUT)
+        response = requests.post(
+            request_url,
+            json={"text": text},
+            timeout=REQUEST_TIMEOUT,
+        )
         response.raise_for_status()
         return response.json()
     except requests.exceptions.HTTPError as err:

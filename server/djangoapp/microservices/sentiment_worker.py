@@ -8,7 +8,6 @@ import logging
 import os
 import sys
 import time
-from urllib.parse import quote
 
 import requests
 from dotenv import load_dotenv
@@ -85,9 +84,11 @@ def verify_dependencies():
 
 
 def analyze_text(text):
-    encoded_text = quote(text, safe="")
-    request_url = f"{SENTIMENT_ANALYZER_URL}/analyze/{encoded_text}"
-    response = requests.get(request_url, timeout=REQUEST_TIMEOUT)
+    response = requests.post(
+        f"{SENTIMENT_ANALYZER_URL}/analyze",
+        json={"text": text},
+        timeout=REQUEST_TIMEOUT,
+    )
     response.raise_for_status()
     payload = response.json()
     sentiment = payload.get("sentiment")
