@@ -183,8 +183,8 @@ server/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/samo-r/xrwvm-fullstack_developer_capstone.git
-cd xrwvm-fullstack_developer_capstone/server
+git clone https://github.com/samo-r/dealership-review-system.git
+cd dealership-review-system/server
 ```
 
 ### 2. Python virtual environment (Django)
